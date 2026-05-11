@@ -1,0 +1,3192 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dienstplan — Lager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── APP SHELL (dark sidebar + light content) ── */
+:root{
+  --bg:#f2f4f7;--bg2:#ffffff;--bg3:#f8f9fb;
+  --border:#dde1e7;--border2:#c4c9d4;
+  --text:#1c2030;--text2:#5a6377;--text3:#9aa3b5;
+  --accent:#3b6fe0;--accent2:#2754c5;
+  --sb-bg:#111827;--sb-border:rgba(255,255,255,0.07);
+  --sb-text:#9ca3af;--sb-active:#e5e7eb;
+  --r:6px;--rl:10px;
+
+  /* Schicht-Farben — wie im echten Plan */
+  --frueh:#c6e2f5;    --frueh-t:#0b3d5e;
+  --frueh2:#a8d4ed;
+  --tag:#d4edda;      --tag-t:#14532d;
+  --spaet:#cfe8c8;    --spaet-t:#1a4010;
+  --nacht:#2d2d3a;    --nacht-t:#e8e8f0;
+  --tour:#f9e840;     --tour-t:#4a3c00;
+  --urlaub:#e0e0e0;   --urlaub-t:#444;
+  --krank:#ffd0d0;    --krank-t:#7a1010;
+  --ps-bg:#f9e840;    --ps-t:#4a3c00;
+  --orange-hdr:#e07820;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+button{font-family:inherit;cursor:pointer;border:none;outline:none;}
+input,select,textarea{font-family:inherit;outline:none;}
+.hidden{display:none!important;}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sb-bg);}
+.login-box{width:360px;background:#1f2937;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:36px;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+.login-logo{font-size:11px;font-weight:700;letter-spacing:.15em;color:#6b7280;text-transform:uppercase;margin-bottom:28px;display:flex;align-items:center;gap:8px;}
+.login-logo::before{content:'';width:8px;height:8px;background:var(--orange-hdr);border-radius:2px;display:inline-block;}
+.login-box h1{font-size:22px;font-weight:600;color:#f9fafb;margin-bottom:4px;}
+.login-box>p{color:#6b7280;font-size:13px;margin-bottom:24px;}
+.lfield{margin-bottom:14px;}
+.lfield label{display:block;font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:5px;letter-spacing:.05em;text-transform:uppercase;}
+.lfi{width:100%;background:#111827;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 13px;color:#f9fafb;font-size:13px;transition:border-color .2s;}
+.lfi:focus{border-color:var(--accent);}
+.btn-login{width:100%;background:var(--orange-hdr);color:#fff;font-size:14px;font-weight:700;padding:11px;border-radius:8px;margin-top:6px;letter-spacing:.02em;}
+.btn-login:hover{background:#c96810;}
+.login-error{background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);color:#fca5a5;font-size:13px;padding:9px 13px;border-radius:8px;margin-bottom:14px;}
+.login-hint{font-size:11px;color:#4b5563;margin-top:14px;text-align:center;}
+
+/* LAYOUT */
+#app{display:flex;min-height:100vh;}
+.sidebar{width:220px;flex-shrink:0;background:var(--sb-bg);border-right:1px solid var(--sb-border);display:flex;flex-direction:column;padding:18px 0;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;}
+.sb-logo{padding:0 18px 18px;display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:.13em;color:#6b7280;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--sb-border);}
+.sb-logo::before{content:'';width:8px;height:8px;background:var(--orange-hdr);border-radius:2px;display:inline-block;}
+.sb-sec{font-size:10px;font-weight:700;color:#4b5563;letter-spacing:.1em;text-transform:uppercase;padding:18px 18px 5px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 18px;font-size:13px;font-weight:500;color:var(--sb-text);cursor:pointer;transition:all .15s;border-left:2px solid transparent;}
+.nav-item:hover{color:var(--sb-active);background:rgba(255,255,255,.04);}
+.nav-item.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--orange-hdr);}
+.nav-item.nav-danger{color:#f87171;}
+.nav-item.nav-danger:hover{background:rgba(239,68,68,.1);}
+.nav-item.nav-danger.active{color:#fca5a5;background:rgba(239,68,68,.1);border-left-color:#ef4444;}
+.sb-bottom{margin-top:auto;padding:14px 18px;border-top:1px solid var(--sb-border);}
+.u-avatar{width:32px;height:32px;border-radius:50%;background:var(--orange-hdr);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.btn-logout{margin-top:9px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#6b7280;font-size:12px;padding:7px;border-radius:7px;transition:all .15s;}
+.btn-logout:hover{background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.25);}
+
+.main{margin-left:220px;flex:1;padding:28px;max-width:1300px;}
+.page{display:none;}.page.active{display:block;}
+.ph{margin-bottom:20px;}
+.ph h2{font-size:20px;font-weight:700;color:var(--text);}
+.ph p{color:var(--text2);font-size:13px;margin-top:2px;}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.sc{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sc h3{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;}
+.stat-lbl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;}
+.stat-val{font-size:26px;font-weight:700;margin:4px 0 2px;font-family:'DM Mono',monospace;}
+.stat-sub{font-size:12px;color:var(--text2);}
+
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
+.bg-green{background:#dcfce7;color:#16a34a;}
+.bg-amber{background:#fef3c7;color:#d97706;}
+.bg-red{background:#fee2e2;color:#dc2626;}
+.bg-blue{background:#dbeafe;color:#2563eb;}
+.bg-purple{background:#ede9fe;color:#7c3aed;}
+.bg-gray{background:#f3f4f6;color:#6b7280;}
+
+.btn-add{background:var(--orange-hdr);color:#fff;font-size:12px;font-weight:700;padding:6px 14px;border-radius:7px;transition:background .15s;}
+.btn-add:hover{background:#c96810;}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--r);padding:10px 14px;font-size:13px;color:#1e40af;margin-bottom:14px;}
+.btn-sm{font-size:12px;padding:4px 9px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);transition:all .15s;}
+.btn-sm:hover{background:var(--border);color:var(--text);}
+.btn-danger{color:#dc2626!important;}
+.btn-danger:hover{background:#fee2e2!important;border-color:#fecaca!important;}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;color:var(--text);font-size:13px;transition:border-color .2s;}
+.fi:focus{border-color:var(--accent);}
+.fi option{background:#fff;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase;}
+.cb-group{display:flex;flex-wrap:wrap;gap:8px;}
+.cb-item{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;}
+.cb-item input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;}
+
+/* KW NAV */
+.kw-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.kw-nav h3{font-size:15px;font-weight:700;min-width:180px;text-align:center;color:var(--text);}
+.btn-nav{background:var(--bg2);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:7px;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.btn-nav:hover{background:var(--border);color:var(--text);}
+.btn-today{background:var(--bg2);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;padding:0 11px;height:30px;border-radius:7px;transition:all .15s;}
+.btn-today:hover{background:var(--border);}
+
+/* ═══ SCHICHTPLAN — wie der echte Aushang ═══ */
+.sp-outer{background:var(--bg2);border:2px solid #b0b6be;border-radius:var(--rl);overflow:hidden;width:100%;}
+.sp-header{background:var(--orange-hdr);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.sp-header h3{font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.sp-date-badge{background:rgba(0,0,0,.2);border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;letter-spacing:.04em;}
+
+.sp-body{display:flex;gap:0;}
+.sp-col{flex:1;min-width:0;}
+.sp-col+.sp-col{border-left:2px solid #b0b6be;width:260px;flex:0 0 260px;min-width:0;}
+
+/* Column headers */
+.sp-col-hdr{display:grid;grid-template-columns:130px 90px 56px 76px 220px;background:var(--orange-hdr);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #b0b6be;}
+.sp-col-hdr div{padding:6px 8px;border-right:1px solid rgba(255,255,255,.2);}
+.sp-col-hdr div:last-child{border-right:none;}
+
+/* Rows */
+.sp-row{display:grid;grid-template-columns:130px 90px 56px 76px 220px;border-bottom:1px solid rgba(0,0,0,.1);font-size:12px;min-height:0;}
+.sp-row:last-child{border-bottom:none;}
+.sp-row div{padding:5px 8px;border-right:1px solid rgba(0,0,0,.08);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-row div.sonstiges{white-space:normal;overflow:visible;}
+.sp-row div:last-child{border-right:none;}
+.sp-row .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-row .zeit{font-family:'DM Mono',monospace;font-weight:600;text-align:center;}
+.sp-row .abt{font-size:10px;font-weight:700;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-row .sonstiges{font-style:italic;font-size:11px;}
+
+/* Row colors */
+.row-frueh{background:var(--frueh);color:var(--frueh-t);}
+.row-tag{background:var(--tag);color:var(--tag-t);}
+.row-spaet{background:var(--spaet);color:var(--spaet-t);}
+.row-nacht{background:var(--nacht);color:var(--nacht-t);}
+.row-tour{background:var(--tour);color:var(--tour-t);}
+.row-urlaub{background:var(--urlaub);color:var(--urlaub-t);}
+.row-krank{background:var(--krank);color:var(--krank-t);}
+.row-frei{background:#f0f0f0;color:#888;}
+/* PS highlight — yellow cell in Sonstiges */
+.ps-cell{background:var(--ps-bg)!important;color:var(--ps-t)!important;font-weight:700!important;font-style:normal!important;}
+
+/* Inline editing — admin mode */
+.isel{background:rgba(255,255,255,.6);border:1px solid rgba(0,0,0,.2);border-radius:5px;color:inherit;font-size:11px;font-family:'DM Sans',sans-serif;padding:2px 5px;cursor:pointer;width:100%;font-weight:600;}
+.isel:focus{outline:none;background:#fff;}
+.isel option{background:#fff;color:#1c2030;}
+.ci{background:rgba(255,255,255,.5);border:1px solid rgba(0,0,0,.15);border-radius:4px;color:inherit;font-size:11px;padding:2px 6px;width:100%;font-style:italic;}
+.ci:focus{outline:none;background:#fff;}
+
+/* Group separator in table */
+.sp-group-sep{background:var(--orange-hdr);color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-bottom:1px solid rgba(0,0,0,.1);}
+
+.sp-col-hdr-r{display:grid;grid-template-columns:110px 80px 50px 1fr;background:var(--orange-hdr);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #b0b6be;}
+.sp-col-hdr-r div{padding:6px 8px;border-right:1px solid rgba(255,255,255,.2);}
+.sp-col-hdr-r div:last-child{border-right:none;}
+.sp-row-r{display:grid;grid-template-columns:110px 80px 50px 1fr;border-bottom:1px solid rgba(0,0,0,.1);font-size:12px;}
+.sp-row-r div{padding:5px 8px;border-right:1px solid rgba(0,0,0,.08);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-row-r div:last-child{border-right:none;}
+.sp-row-r .name{font-weight:600;}
+.sp-row-r .zeit{font-family:'DM Mono',monospace;font-weight:600;text-align:center;}
+/* Bottom date bar */
+.sp-footer{background:var(--orange-hdr);color:#fff;text-align:right;padding:8px 16px;font-size:20px;font-weight:700;letter-spacing:.06em;border-top:2px solid #b0b6be;}
+
+/* DEPT BARS (dashboard) */
+.db{margin-bottom:10px;}
+.db-lbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.db-tr{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.db-fl{height:100%;border-radius:3px;transition:width .5s;}
+
+/* ABSENCE ROWS */
+.abs-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);}
+.abs-row:last-child{border-bottom:none;}
+
+/* EMP GRID */
+.eg{display:grid;grid-template-columns:2fr 1fr 1fr 1.5fr 1fr auto;gap:10px;align-items:center;padding:10px 13px;border-bottom:1px solid var(--border);}
+.eg:hover{background:var(--bg3);}
+.eg.hdr{background:var(--bg3);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;}
+.cap-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:#dbeafe;color:#2563eb;margin:2px;}
+
+/* SCHICHT MGMT */
+.sr{display:grid;grid-template-columns:12px 1fr 110px 60px 50px 80px;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);}
+.sr.hdr{background:var(--bg3);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;padding:9px 14px;}
+.sr:last-child{border-bottom:none;}
+
+/* KRANKMELDUNG */
+.kf3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.krank-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);font-size:13px;}
+.krank-row.hdr{background:var(--bg3);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;}
+.krank-row:last-child{border-bottom:none;}
+
+/* URLAUB */
+.ul-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);font-size:13px;}
+.ul-row.hdr{background:var(--bg3);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;}
+.ul-row:last-child{border-bottom:none;}
+
+/* MEIN PLAN */
+.my-big{background:var(--bg2);border:2px solid var(--border2);border-radius:var(--rl);padding:24px;text-align:center;margin-bottom:18px;}
+
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:26px;width:100%;max-width:480px;box-shadow:0 24px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:18px;color:var(--text);}
+.ma{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:8px 15px;border-radius:var(--r);}
+.btn-ghost:hover{background:var(--bg3);}
+.btn-confirm{background:var(--orange-hdr);color:#fff;font-size:13px;font-weight:700;padding:8px 18px;border-radius:var(--r);}
+.btn-confirm:hover{background:#c96810;}
+
+/* NOTIF */
+.nr{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.nr:last-child{border-bottom:none;}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c2030;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;transition:opacity .25s,transform .25s;z-index:999;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ══════════════════════════════════════
+   MOBILE RESPONSIVE
+   ══════════════════════════════════════ */
+
+/* Hamburger menu button */
+.hamburger{display:none;position:fixed;top:14px;left:14px;z-index:1000;
+  background:var(--orange-hdr);border:none;border-radius:8px;
+  width:40px;height:40px;cursor:pointer;flex-direction:column;
+  align-items:center;justify-content:center;gap:5px;padding:0;}
+.hamburger span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:all .2s;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;}
+
+@media(max-width:768px){
+  /* Show hamburger */
+  .hamburger{display:flex;}
+  
+  /* Sidebar: hidden off-screen by default */
+  .sidebar{
+    position:fixed;left:-240px;top:0;height:100vh;z-index:999;
+    transition:left .25s ease;box-shadow:4px 0 20px rgba(0,0,0,.3);
+  }
+  .sidebar.open{left:0;}
+  .sidebar-overlay.open{display:block;}
+  
+  /* Main: full width on mobile */
+  .main{margin-left:0;padding:16px;padding-top:64px;}
+  
+  /* Page header */
+  .ph h2{font-size:20px;}
+  
+  /* Stat grid: 2 columns on mobile */
+  .stat-grid{grid-template-columns:1fr 1fr !important;}
+  
+  /* Dashboard: single column */
+  .dash-grid,.g2{grid-template-columns:1fr !important;}
+  
+  /* Schichtplan: horizontal scroll */
+  .sp-outer{overflow-x:auto;}
+  .sp-col-hdr,.sp-row{grid-template-columns:110px 80px 50px 64px 90px !important;}
+  
+  /* Forms: full width */
+  .fi{font-size:16px;} /* prevents zoom on iOS */
+  .kf3{grid-template-columns:1fr !important;}
+  
+  /* Modal: full screen on mobile */
+  .modal{width:calc(100vw - 32px);max-width:100%;max-height:90vh;overflow-y:auto;}
+  
+  /* Employee list: simpler grid */
+  #emp-list > div{grid-template-columns:1fr auto !important;}
+  
+  /* Buttons: larger touch targets */
+  .btn-confirm,.btn-add{min-height:44px;}
+  
+  /* Login screen */
+  .login-box{width:calc(100vw - 32px);margin:16px;}
+  
+  /* KW nav buttons */
+  .btn-nav{width:36px;height:36px;}
+  
+  /* Schichtbesetzung bars */
+  .db{margin-bottom:8px;}
+  
+  /* Night groups */
+  #night-group-list label{font-size:11px;padding:2px 6px;}
+}
+
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr !important;}
+  .sp-col-hdr,.sp-row{grid-template-columns:100px 80px 48px 60px 80px !important;}
+  .ph{flex-direction:column;gap:8px;}
+  .ph img{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">F&amp;P Dienstplan</div>
+    <h1>Anmelden</h1>
+    <p>Bitte melde dich mit deinen Zugangsdaten an.</p>
+    <div id="login-error" class="login-error hidden"></div>
+    <div class="lfield"><label>Benutzername</label><input id="lu" type="text" class="lfi" placeholder="dein.name"></div>
+    <div class="lfield"><label>Passwort</label><input id="lp" type="password" class="lfi" placeholder="••••••••"></div>
+    <button class="btn-login" onclick="doLogin()">Anmelden</button>
+    
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menü">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <nav class="sidebar" id="sidebar">
+    <div class="sb-logo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MCA3MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjM1Ij4KICA8cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjMWE2YjNjIi8+CiAgPGNpcmNsZSBjeD0iMzAiIGN5PSIxMyIgcj0iNiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOTUiLz4KICA8cmVjdCB4PSIyNCIgeT0iMTkiIHgyPSIzNiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjE2IiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTgsMzUgNDIsMzUgMzYsNTAgMjQsNTAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjk1Ii8+CiAgPGxpbmUgeDE9IjI0IiB5MT0iNTAiIHgyPSIxOCIgeTI9IjY1IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMuNSIvPgogIDxsaW5lIHgxPSIzNiIgeTE9IjUwIiB4Mj0iNDIiIHkyPSI2NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzLjUiLz4KICA8cmVjdCB4PSIzNyIgeT0iMTYiIHdpZHRoPSIxMiIgaGVpZ2h0PSI4IiByeD0iMiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIgdHJhbnNmb3JtPSJyb3RhdGUoLTE1LDQzLDIwKSIvPgogIDx0ZXh0IHg9IjMwIiB5PSI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIj5GJmFtcDtQPC90ZXh0Pgo8L3N2Zz4=" style="width:28px;height:28px;border-radius:5px;flex-shrink:0;"> <span>F&amp;P Dienstplan</span></div>
+    <div id="ndl-selector-wrap" style="padding:10px 18px 0;" class="admin-only">
+      <div style="font-size:10px;font-weight:700;color:#4b5563;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Niederlassung</div>
+      <select id="ndl-select" onchange="switchStandort(this.value)"
+        style="width:100%;background:#1f2937;border:1px solid rgba(255,255,255,.12);border-radius:7px;color:#e5e7eb;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;">
+      </select>
+      <div style="font-size:10px;font-weight:700;color:#4b5563;letter-spacing:.1em;text-transform:uppercase;margin-top:10px;margin-bottom:6px;">Bereich</div>
+      <select id="bereich-select" onchange="switchBereich(this.value)"
+        style="width:100%;background:#1f2937;border:1px solid rgba(255,255,255,.12);border-radius:7px;color:#e5e7eb;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;">
+        <option value="lager">🏭 Lager</option>
+        <option value="fahrer">🚛 Fahrer</option>
+      </select>
+    </div>
+    <div class="sb-sec lager-sb-sec">Navigation</div>
+    <div class="nav-item active" data-page="dashboard" onclick="navTo('dashboard',this)"><span style="width:16px;text-align:center;">◈</span> Dashboard</div>
+    <div class="nav-item admin-only" data-page="schichtplan" onclick="navTo('schichtplan',this)"><span style="width:16px;text-align:center;">▦</span> Schichtplan</div>
+    <div class="nav-item" data-page="meinplan" onclick="navTo('meinplan',this)"><span style="width:16px;text-align:center;">◷</span> Mein Plan</div>
+    <div class="nav-item" data-page="history" onclick="navTo('history',this)"><span style="width:16px;text-align:center;">↺</span> Schicht-History</div>
+    <div class="sb-sec admin-only lager-sb-sec">Admin</div>
+    <div class="nav-item admin-only" style="color:#f87171;" data-page="krankmeldung" onclick="navTo('krankmeldung',this)"><span style="width:16px;text-align:center;">✚</span> Krankmeldung</div>
+    <div class="nav-item admin-only" style="color:#fbbf24;" data-page="urlaub" onclick="navTo('urlaub',this)"><span style="width:16px;text-align:center;">☀</span> Urlaub</div>
+    <div class="nav-item admin-only" style="color:#4ade80;" data-page="mitarbeiter" onclick="navTo('mitarbeiter',this)"><span style="width:16px;text-align:center;">◉</span> Mitarbeiter</div>
+    <div class="nav-item admin-only" data-page="schichten" onclick="navTo('schichten',this)"><span style="width:16px;text-align:center;">⊞</span> Schichten</div>
+    <div class="nav-item admin-only" data-page="abteilungen" onclick="navTo('abteilungen',this)"><span style="width:16px;text-align:center;">⬡</span> Abteilungen</div>
+    <div class="nav-item admin-only" data-page="benachrichtigung" onclick="navTo('benachrichtigung',this)"><span style="width:16px;text-align:center;">◎</span> Benachrichtigungen</div>
+    <div class="nav-item admin-only" data-page="einstellungen" onclick="navTo('einstellungen',this)"><span style="width:16px;text-align:center;">⚙</span> Einstellungen</div>
+    <div class="nav-item" data-page="profil" onclick="navTo('profil',this)"><span style="width:16px;text-align:center;">👤</span> Mein Profil</div>
+
+    <!-- FAHRER NAV (hidden when lager mode) -->
+    <div class="fahrer-nav hidden">
+      <div class="sb-sec">Fahrer</div>
+      <div class="nav-item fahrer-nav-item" data-page="fahrer-plan" onclick="navTo('fahrer-plan',this)"><span style="width:16px;text-align:center;">▦</span> Fahrereinteilung</div>
+      <div class="nav-item fahrer-nav-item" data-page="fahrer-meinplan" onclick="navTo('fahrer-meinplan',this)"><span style="width:16px;text-align:center;">◷</span> Mein Plan</div>
+      <div class="sb-sec admin-only fahrer-nav-item">Admin</div>
+      <div class="nav-item admin-only fahrer-nav-item" style="color:#f87171;" data-page="fahrer-krank" onclick="navTo('fahrer-krank',this)"><span style="width:16px;text-align:center;">✚</span> Krankmeldung</div>
+      <div class="nav-item admin-only fahrer-nav-item" style="color:#fbbf24;" data-page="fahrer-urlaub" onclick="navTo('fahrer-urlaub',this)"><span style="width:16px;text-align:center;">☀</span> Urlaub</div>
+      <div class="nav-item admin-only fahrer-nav-item" style="color:#4ade80;" data-page="fahrer-mitarbeiter" onclick="navTo('fahrer-mitarbeiter',this)"><span style="width:16px;text-align:center;">◉</span> Fahrer-Liste</div>
+    </div>
+    <div class="sb-bottom">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="u-avatar" id="sb-av"></div>
+        <div><div style="font-size:13px;font-weight:600;color:#e5e7eb;" id="sb-name"></div><div style="font-size:11px;color:#6b7280;" id="sb-role"></div></div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Abmelden</button>
+      <div style="text-align:center;margin-top:10px;font-size:10px;color:#374151;line-height:1.5;">made by Jason Heller<br>with ✦ Claude AI</div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div><h2>Dashboard</h2><p id="dash-date"></p></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn-nav" onclick="changeDashDay(-1)">‹</button>
+          <span id="dash-day-lbl" style="font-size:13px;font-weight:600;min-width:160px;text-align:center;color:var(--text2);"></span>
+          <button class="btn-nav" onclick="changeDashDay(1)">›</button>
+          <button class="btn-today" onclick="changeDashDay(0)" id="dash-today-btn">Heute</button>
+        </div>
+      </div>
+      <div class="g4" style="margin-bottom:16px;" id="dash-stats"></div>
+      <div class="g2" id="dash-lower"></div>
+    </div>
+
+    <!-- SCHICHTPLAN -->
+    <div id="page-schichtplan" class="page">
+      <div class="ph" style="display:flex;align-items:flex-start;justify-content:space-between;"><div><h2>Schichtplan</h2><p id="sp-sub"></p></div><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MCA3MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjM1Ij4KICA8cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjMWE2YjNjIi8+CiAgPGNpcmNsZSBjeD0iMzAiIGN5PSIxMyIgcj0iNiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOTUiLz4KICA8cmVjdCB4PSIyNCIgeT0iMTkiIHgyPSIzNiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjE2IiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTgsMzUgNDIsMzUgMzYsNTAgMjQsNTAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjk1Ii8+CiAgPGxpbmUgeDE9IjI0IiB5MT0iNTAiIHgyPSIxOCIgeTI9IjY1IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMuNSIvPgogIDxsaW5lIHgxPSIzNiIgeTE9IjUwIiB4Mj0iNDIiIHkyPSI2NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzLjUiLz4KICA8cmVjdCB4PSIzNyIgeT0iMTYiIHdpZHRoPSIxMiIgaGVpZ2h0PSI4IiByeD0iMiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIgdHJhbnNmb3JtPSJyb3RhdGUoLTE1LDQzLDIwKSIvPgogIDx0ZXh0IHg9IjMwIiB5PSI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIj5GJmFtcDtQPC90ZXh0Pgo8L3N2Zz4=" style="width:36px;height:36px;border-radius:7px;opacity:0.85;"></div>
+      <div class="kw-nav">
+        <button class="btn-nav" onclick="changeKW(-1)">‹</button>
+        <h3 id="kw-lbl"></h3>
+        <button class="btn-nav" onclick="changeKW(1)">›</button>
+        <button class="btn-today" onclick="goToday()">Heute</button>
+        <button class="btn-add" onclick="autoFill()" style="margin-left:auto;">⚡ Auto-Plan</button>
+        <button id="freigabe-btn" onclick="toggleFreigabe()" style="font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;transition:all .15s;"></button>
+        <button id="save-plan-btn" onclick="savePlanBtn()" style="font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;background:rgba(37,99,235,0.1);color:#2563eb;border:1px solid rgba(37,99,235,0.3);">💾 Speichern</button>
+        <button onclick="printSchichtplan()" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;display:flex;align-items:center;gap:6px;transition:all .15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6,18H4a2,2 0 0,1-2-2v-5a2,2 0 0,1,2-2h16a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Drucken
+        </button>
+      </div>
+      <div id="sp-container"></div>
+    </div>
+
+    <!-- MEIN PLAN -->
+    <div id="page-meinplan" class="page">
+      <div class="ph" style="display:flex;align-items:flex-start;justify-content:space-between;"><div><h2>Mein Dienstplan</h2><p id="mp-sub"></p></div><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MCA3MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjM1Ij4KICA8cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjMWE2YjNjIi8+CiAgPGNpcmNsZSBjeD0iMzAiIGN5PSIxMyIgcj0iNiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOTUiLz4KICA8cmVjdCB4PSIyNCIgeT0iMTkiIHgyPSIzNiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjE2IiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTgsMzUgNDIsMzUgMzYsNTAgMjQsNTAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjk1Ii8+CiAgPGxpbmUgeDE9IjI0IiB5MT0iNTAiIHgyPSIxOCIgeTI9IjY1IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMuNSIvPgogIDxsaW5lIHgxPSIzNiIgeTE9IjUwIiB4Mj0iNDIiIHkyPSI2NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzLjUiLz4KICA8cmVjdCB4PSIzNyIgeT0iMTYiIHdpZHRoPSIxMiIgaGVpZ2h0PSI4IiByeD0iMiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIgdHJhbnNmb3JtPSJyb3RhdGUoLTE1LDQzLDIwKSIvPgogIDx0ZXh0IHg9IjMwIiB5PSI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIj5GJmFtcDtQPC90ZXh0Pgo8L3N2Zz4=" style="width:36px;height:36px;border-radius:7px;opacity:0.85;"></div>
+      <div id="my-cur"></div>
+      <div class="card"><div class="sc"><h3>Nächste 8 Wochen</h3></div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;" id="my-table"></table></div>
+      </div>
+    </div>
+
+    <!-- KRANKMELDUNG -->
+    <div id="page-krankmeldung" class="page admin-only">
+      <div class="ph"><h2>Krankmeldung</h2><p>Krankmeldungen eintragen und verwalten</p></div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="sc"><h3>Neue Krankmeldung</h3></div>
+        <div class="kf3" style="margin-bottom:14px;">
+          <div class="field" style="margin:0;"><label>Mitarbeiter</label><select id="km-emp" class="fi"></select></div>
+          <div class="field" style="margin:0;"><label>Krank ab</label><input type="date" id="km-from" class="fi"></div>
+          <div class="field" style="margin:0;"><label>Voraussichtlich bis</label><input type="date" id="km-to" class="fi"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="btn-confirm" onclick="saveKrankmeldung()">Eintragen</button>
+          <button style="background:#fee2e2;color:#dc2626;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;border:1px solid #fecaca;display:flex;align-items:center;gap:6px;" onclick="schnellKrank()">
+            ⚡ Heute krank
+          </button>
+          <span style="font-size:11px;color:var(--text3);">↑ Enddatum noch offen, später nachtragen</span>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="krank-row hdr"><div>Mitarbeiter</div><div>Ab</div><div>Bis</div><div>KW von</div><div>KW bis</div><div></div></div>
+        <div id="krank-list"></div>
+      </div>
+    </div>
+
+    <!-- URLAUB -->
+    <div id="page-urlaub" class="page admin-only">
+      <div class="ph"><h2>Urlaub</h2><p>Urlaube eintragen oder per Excel importieren</p></div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="sc"><h3>Urlaub eintragen</h3></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:flex-end;">
+          <div class="field" style="margin:0;"><label>Mitarbeiter</label><select id="ul-emp" class="fi"></select></div>
+          <div class="field" style="margin:0;"><label>Von</label><input type="date" id="ul-from" class="fi"></div>
+          <div class="field" style="margin:0;"><label>Bis</label><input type="date" id="ul-to" class="fi"></div>
+          <button class="btn-add" onclick="addUrlaub()" style="height:40px;">Eintragen</button>
+        </div>
+        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+          <div class="sc"><h3>Excel einfügen</h3><span style="font-size:11px;color:var(--text3);">Name | Von (TT.MM.JJJJ) | Bis (TT.MM.JJJJ)</span></div>
+          <textarea id="ul-paste" class="fi" rows="4" placeholder="Aus Excel kopieren und hier einfügen..." style="resize:vertical;font-family:'DM Mono',monospace;font-size:12px;"></textarea>
+          <button class="btn-add" onclick="importUrlaub()" style="margin-top:8px;">Importieren</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="ul-row hdr"><div>Mitarbeiter</div><div>Von</div><div>Bis</div><div>KWs</div><div></div></div>
+        <div id="urlaub-list"></div>
+      </div>
+    </div>
+
+    <!-- MITARBEITER -->
+    <div id="page-mitarbeiter" class="page admin-only">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>Mitarbeiter</h2>
+        <span id="emp-count-badge" style="font-size:13px;font-weight:600;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 14px;color:var(--text2);"></span>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:center;padding:9px 14px;background:var(--bg3);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;">
+          <div>Name</div><div>Abteilungen</div><div>Bereich</div><div></div>
+        </div>
+        <div id="emp-list"></div>
+      </div>
+      <button class="btn-add" onclick="openAddEmp()">+ Mitarbeiter hinzufügen</button>
+    </div>
+
+    <!-- SCHICHTEN -->
+    <div id="page-schichten" class="page admin-only">
+      <div class="ph"><h2>Schichten verwalten</h2></div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+        <div class="sr hdr"><div></div><div>Bezeichnung</div><div>Uhrzeit</div><div>Typ</div><div>Azubi</div><div>Aktionen</div></div>
+        <div id="sch-list"></div>
+      </div>
+      <button class="btn-add" onclick="openAddSchicht()">+ Schicht hinzufügen</button>
+    </div>
+
+
+    <!-- ABTEILUNGEN -->
+    <div id="page-abteilungen" class="page admin-only">
+      <div class="ph"><h2>Abteilungen verwalten</h2><p>Abteilungen anlegen – stehen dann bei Mitarbeitern und im Schichtplan zur Verfügung</p></div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+        <div class="sr hdr" style="grid-template-columns:40px 1fr 80px 120px;"><div></div><div>Bezeichnung</div><div>Kürzel</div><div>Aktionen</div></div>
+        <div id="abt-list"></div>
+      </div>
+      <button class="btn-add" onclick="openAddAbt()">+ Abteilung hinzufügen</button>
+    </div>
+
+    <!-- BENACHRICHTIGUNGEN -->
+    <div id="page-benachrichtigung" class="page admin-only">
+      <div class="ph"><h2>Benachrichtigungen</h2><p>Schichtpläne an Mitarbeiter versenden</p></div>
+      <div class="g2">
+        <div class="card">
+          <div class="sc"><h3>Schichtplan versenden</h3></div>
+          <div class="field"><label>Kalenderwoche</label>
+            <select id="notif-kw" class="fi"></select>
+          </div>
+          <div class="field"><label>Empfänger</label>
+            <div class="cb-group" id="notif-emps"></div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--text2);margin-bottom:14px;">
+            <strong style="color:var(--text);">Versandweg</strong> wird automatisch ermittelt:<br>
+            📧 E-Mail an alle · 📱 SMS zusätzlich wenn Nummer hinterlegt
+          </div>
+          <button class="btn-confirm" style="width:100%;" onclick="sendSchichtplanNotif()">Schichtplan senden</button>
+        </div>
+        <div class="card">
+          <div class="sc"><h3>Verlauf</h3></div>
+          <div id="notif-history"></div>
+          <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Erneut senden</div>
+            <div class="field" style="margin-bottom:8px;"><label>Mitarbeiter</label><select id="resend-emp" class="fi"></select></div>
+            <div class="field" style="margin-bottom:10px;"><label>Kalenderwoche</label><select id="resend-kw" class="fi"></select></div>
+            <button class="btn-add" onclick="resendToEmployee()" style="width:100%;">Erneut senden</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- EINSTELLUNGEN -->
+    <div id="page-einstellungen" class="page admin-only">
+      <div class="ph"><h2>Einstellungen</h2><p>System-Grundeinstellungen</p></div>
+      <div class="g2">
+        <div class="card">
+          <div class="sc"><h3>Darstellung</h3></div>
+          <div class="field"><label>Akzentfarbe (Header / Buttons)</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;" id="color-swatches"></div>
+          </div>
+          <div class="field"><label>Eigene Niederlassungen</label>
+            <div class="cb-group">
+              <label class="cb-item"><input type="checkbox" id="ndl-koeln" onchange="saveAdminNDL()" style="accent-color:var(--accent);width:14px;height:14px;"> Köln</label>
+              <label class="cb-item"><input type="checkbox" id="ndl-dortmund" onchange="saveAdminNDL()" style="accent-color:var(--accent);width:14px;height:14px;"> Dortmund</label>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px;"><label>Firmenname (wird im Header angezeigt)</label>
+            <input type="text" id="s-firmname" class="fi" placeholder="F&amp;P Lager" oninput="updateFirmname(this.value)">
+          </div>
+        </div>
+        <div class="card">
+          <div class="sc"><h3>Auto-Plan Schichtverteilung</h3></div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px;">Prozentuale Zielverteilung der verfügbaren Mitarbeiter. Die tatsächliche Anzahl wird live berechnet (Urlaub/Krank abgezogen).</p>
+          <div style="display:flex;gap:6px;margin-bottom:14px;" id="autoplan-ndl-tabs">
+            <button id="ap-tab-koeln" onclick="setApTab('koeln')" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;">Köln</button>
+            <button id="ap-tab-dortmund" onclick="setApTab('dortmund')" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text2);">Dortmund</button>
+          </div>
+          <div id="autoplan-sliders"></div>
+          <div style="margin-top:14px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);font-size:12px;color:var(--text2);" id="autoplan-preview"></div>
+          <div class="field" style="margin-top:16px;"><label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;">
+            <input type="checkbox" id="s-sounds" onchange="toggleSounds(this.checked)" style="accent-color:var(--accent);width:15px;height:15px;" checked>
+            Interface-Sounds aktiviert
+          </label></div>
+          <button class="btn-confirm" style="margin-top:12px;" onclick="saveSettings()">Speichern</button>
+        </div>
+      </div>
+      <!-- Nachtgruppen full width -->
+      <div class="card" style="margin-top:14px;grid-column:1/-1;">
+        <div class="sc"><h3>Nachtschicht-Gruppen</h3><button class="btn-add" onclick="addNightGroup()">+ Gruppe</button></div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">Gruppen rotieren im 2-Wochen-Rhythmus. Mitglieder werden bei Auto-Plan bevorzugt für Nachtschicht eingeplant.</p>
+        <div id="night-group-list"></div>
+      </div>
+    </div>
+    <!-- PROFIL -->
+    <div id="page-profil" class="page">
+      <div class="ph"><h2>Mein Profil</h2><p id="profil-sub"></p></div>
+      <div class="g2">
+        <div class="card">
+          <div class="sc"><h3>Persönliche Daten</h3></div>
+          <div class="field"><label>Name</label>
+            <input type="text" id="prf-name" class="fi" readonly style="background:var(--bg3);color:var(--text2);">
+          </div>
+          <div class="field"><label>Benutzername</label>
+            <input type="text" id="prf-user" class="fi" readonly style="background:var(--bg3);color:var(--text2);">
+          </div>
+          <div class="field"><label>E-Mail</label>
+            <input type="email" id="prf-email" class="fi" placeholder="deine@email.de">
+          </div>
+          <div class="field"><label>Telefon</label>
+            <input type="tel" id="prf-phone" class="fi" placeholder="+49 151 1234 5678">
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">Wird für SMS-Benachrichtigungen genutzt</div>
+          </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;">
+              <input type="checkbox" id="prf-sms" style="accent-color:var(--accent);width:15px;height:15px;">
+              SMS-Benachrichtigungen aktivieren
+            </label>
+          </div>
+          <button class="btn-confirm" onclick="saveProfilData()">Speichern</button>
+        </div>
+        <div class="card">
+          <div class="sc"><h3>Passwort ändern</h3></div>
+          <div class="field"><label>Aktuelles Passwort</label>
+            <input type="password" id="prf-pw-old" class="fi" placeholder="••••••••">
+          </div>
+          <div class="field"><label>Neues Passwort</label>
+            <input type="password" id="prf-pw-new" class="fi" placeholder="••••••••">
+          </div>
+          <div class="field"><label>Neues Passwort bestätigen</label>
+            <input type="password" id="prf-pw-new2" class="fi" placeholder="••••••••">
+          </div>
+          <button class="btn-confirm" onclick="saveProfilPw()">Passwort ändern</button>
+        </div>
+      </div>
+    </div>
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <div class="ph"><h2>Schicht-History</h2><p id="history-sub"></p></div>
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div id="hist-emp-wrap" class="hidden" style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:600;color:var(--text2);">Mitarbeiter</label>
+            <select id="hist-emp" class="fi" style="width:180px;" onchange="renderHistoryTable()"></select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:600;color:var(--text2);">Jahr</label>
+            <select id="hist-year" class="fi" style="width:100px;" onchange="renderHistoryTable()"></select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:600;color:var(--text2);">KW von</label>
+            <select id="hist-kw-from" class="fi" style="width:80px;" onchange="renderHistoryTable()"></select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:600;color:var(--text2);">bis</label>
+            <select id="hist-kw-to" class="fi" style="width:80px;" onchange="renderHistoryTable()"></select>
+          </div>
+          <button class="btn-today" onclick="resetHistoryFilter()" style="margin-left:auto;">Aktuelle KW</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:130px 1fr 90px 110px 1fr;background:var(--bg3);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;">
+          <div style="padding:8px 13px;">KW</div>
+          <div style="padding:8px 13px;">Zeitraum</div>
+          <div style="padding:8px 13px;">Schicht</div>
+          <div style="padding:8px 13px;">Uhrzeit</div>
+          <div style="padding:8px 13px;">Status</div>
+        </div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- FAHRER PAGES -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <!-- FAHRER EINTEILUNG (Schichtplan für Fahrer) -->
+    <div id="page-fahrer-plan" class="page hidden fahrer-page">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div><h2>🚛 Fahrereinteilung</h2><p id="fahrer-plan-kw-lbl"></p></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn-nav" onclick="changeFahrerKW(-1)">‹</button>
+          <span id="fahrer-kw-lbl" style="font-size:13px;font-weight:600;min-width:100px;text-align:center;color:var(--text2);"></span>
+          <button class="btn-nav" onclick="changeFahrerKW(1)">›</button>
+          <button class="btn-today" onclick="changeFahrerKW(0)">Heute</button>
+        </div>
+      </div>
+      <div id="fahrer-plan-table" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- FAHRER MEIN PLAN -->
+    <div id="page-fahrer-meinplan" class="page hidden fahrer-page">
+      <div class="ph"><h2>🚛 Mein Plan</h2><p>Deine Einteilung als Fahrer</p></div>
+      <div id="fahrer-meinplan-content"></div>
+    </div>
+
+    <!-- FAHRER KRANKMELDUNG -->
+    <div id="page-fahrer-krank" class="page hidden fahrer-page">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between;">
+        <div><h2>Krankmeldung – Fahrer</h2></div>
+        <button class="btn-add" onclick="openAddFahrerKrank()">+ Krankmeldung</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div id="fahrer-krank-list"></div>
+      </div>
+    </div>
+
+    <!-- FAHRER URLAUB -->
+    <div id="page-fahrer-urlaub" class="page hidden fahrer-page">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between;">
+        <div><h2>Urlaub – Fahrer</h2></div>
+        <button class="btn-add" onclick="openAddFahrerUrlaub()">+ Urlaub</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div id="fahrer-urlaub-list"></div>
+      </div>
+    </div>
+
+    <!-- FAHRER MITARBEITERLISTE -->
+    <div id="page-fahrer-mitarbeiter" class="page hidden fahrer-page">
+      <div class="ph" style="display:flex;align-items:center;justify-content:space-between;">
+        <div><h2>Fahrer-Liste</h2><p>Alle Fahrer verwalten</p></div>
+        <button class="btn-add" onclick="openAddFahrer()">+ Fahrer hinzufügen</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px;">
+        <div class="sr hdr" style="grid-template-columns:1fr 120px 120px 100px 120px;"><div>Name</div><div>Typ</div><div>Standort</div><div>Status</div><div>Aktionen</div></div>
+        <div id="fahrer-list"></div>
+      </div>
+    </div>
+
+    <!-- MODAL: Fahrer anlegen/bearbeiten -->
+    <div id="modal-fahrer" class="mbg hidden">
+      <div class="modal">
+        <h3 id="mf-title">Fahrer</h3>
+        <div class="field"><label>Name</label><input type="text" id="f-name" class="fi" placeholder="Nachname, Vorname"></div>
+        <div class="field"><label>Benutzername</label><input type="text" id="f-username" class="fi" placeholder="z.B. mmustermann"></div>
+        <div class="field"><label>Passwort</label><input type="password" id="f-pw" class="fi" placeholder="Leer lassen um Passwort beizubehalten"><small style="color:var(--text3);font-size:11px;">Nur ausfüllen wenn du das Passwort ändern möchtest</small></div>
+        <div class="field"><label>E-Mail</label><input type="email" id="f-email" class="fi"></div>
+        <div class="field"><label>Typ</label>
+          <select id="f-typ" class="fi">
+            <option value="tourenfahrer">🚛 Tourenfahrer (05:00)</option>
+            <option value="austauschfahrer">🔄 Austauschfahrer (15:00)</option>
+          </select>
+        </div>
+        <div class="field"><label>Standort</label>
+          <select id="f-standort" class="fi">
+            <option value="koeln">Köln</option>
+            <option value="dortmund">Dortmund</option>
+          </select>
+        </div>
+        <div class="ma"><button class="btn-ghost" onclick="closeM('modal-fahrer')">Abbrechen</button><button class="btn-confirm" onclick="saveFahrer()">Speichern</button></div>
+      </div>
+    </div>
+
+    <!-- MODAL: Fahrer Krankmeldung -->
+    <div id="modal-fahrer-krank" class="mbg hidden">
+      <div class="modal">
+        <h3>Krankmeldung – Fahrer</h3>
+        <div class="field"><label>Fahrer</label><select id="fk-emp" class="fi"></select></div>
+        <div class="field"><label>Von</label><input type="date" id="fk-from" class="fi"></div>
+        <div class="field"><label>Bis</label><input type="date" id="fk-to" class="fi"><small style="color:var(--text3);font-size:11px;">Leer lassen wenn noch offen</small></div>
+        <div class="ma"><button class="btn-ghost" onclick="closeM('modal-fahrer-krank')">Abbrechen</button><button class="btn-confirm" onclick="saveFahrerKrank()">Speichern</button></div>
+      </div>
+    </div>
+
+    <!-- MODAL: Fahrer Urlaub -->
+    <div id="modal-fahrer-urlaub" class="mbg hidden">
+      <div class="modal">
+        <h3>Urlaub – Fahrer</h3>
+        <div class="field"><label>Fahrer</label><select id="fu-emp" class="fi"></select></div>
+        <div class="field"><label>Von</label><input type="date" id="fu-from" class="fi"></div>
+        <div class="field"><label>Bis</label><input type="date" id="fu-to" class="fi"></div>
+        <div class="ma"><button class="btn-ghost" onclick="closeM('modal-fahrer-urlaub')">Abbrechen</button><button class="btn-confirm" onclick="saveFahrerUrlaub()">Speichern</button></div>
+      </div>
+    </div>
+
+    <!-- MODAL: Sonstiges Eintrag -->
+    <div id="modal-fahrer-sonstiges" class="mbg hidden">
+      <div class="modal">
+        <h3 id="mfs-title">Sonstiges</h3>
+        <div class="field"><label>Notiz</label><textarea id="fs-text" class="fi" rows="4" placeholder="z.B. Sonderfahrt, Krankenhaus-Tour, Vertretung..."></textarea></div>
+        <div class="ma"><button class="btn-ghost" onclick="closeM('modal-fahrer-sonstiges')">Abbrechen</button><button class="btn-confirm" onclick="saveFahrerSonstiges()">Speichern</button></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-emp" class="mbg hidden">
+  <div class="modal">
+    <h3 id="modal-emp-title">Mitarbeiter</h3>
+    <div class="field"><label>Name</label><input type="text" id="ep-name" class="fi"></div>
+    <div class="field"><label>Benutzername</label><input type="text" id="ep-user" class="fi"></div>
+    <div class="field"><label>Passwort</label>
+      <input type="password" id="ep-pass" class="fi" placeholder="Leer lassen um Passwort beizubehalten">
+      <div id="ep-pass-hint" style="font-size:11px;color:var(--text3);margin-top:4px;">Nur ausfüllen wenn du das Passwort ändern möchtest</div>
+      <input type="hidden" id="ep-pass-old" value="">
+    </div>
+    <div class="field"><label>E-Mail</label><input type="email" id="ep-email" class="fi"></div>
+    <div class="field"><label>Rolle</label>
+      <select id="ep-role" class="fi" onchange="onEmpRoleChange()">
+        <option value="employee">Mitarbeiter</option>
+        <option value="admin">Administrator</option>
+      </select>
+    </div>
+    <div class="field"><label>Standort</label>
+      <select id="ep-standort" class="fi">
+        <option value="koeln">Köln</option>
+        <option value="dortmund">Dortmund</option>
+      </select>
+    </div>
+    <div id="ep-admin-ndl-wrap" class="hidden" style="background:rgba(224,120,32,0.06);border:1px solid rgba(224,120,32,0.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sichtbare Niederlassungen</div>
+      <div class="cb-group">
+        <label class="cb-item"><input type="checkbox" class="ep-ndl-cb" value="koeln" checked style="accent-color:var(--accent);width:14px;height:14px;"> Köln</label>
+        <label class="cb-item"><input type="checkbox" class="ep-ndl-cb" value="dortmund" style="accent-color:var(--accent);width:14px;height:14px;"> Dortmund</label>
+      </div>
+    </div>
+    <div class="field"><label>Abteilungen <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">(Mehrfachauswahl möglich)</span></label>
+      <div id="ep-abt-group" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
+    </div>
+    <div class="field"><label>Erlaubte Schichten</label>
+      <div id="ep-shifts" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);">
+        <input type="checkbox" id="ep-sms-toggle" onchange="togglePhoneField()" style="accent-color:var(--accent);width:15px;height:15px;">
+        SMS-Benachrichtigungen aktivieren
+      </label>
+      <div id="ep-phone-wrap" class="hidden" style="margin-top:8px;">
+        <input type="tel" id="ep-phone" class="fi" placeholder="+49 151 1234 5678">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Nummer wird für SMS-Schichtplan-Versand genutzt</div>
+      </div>
+    </div>
+    <div class="ma"><button class="btn-ghost" onclick="closeM('modal-emp')">Abbrechen</button><button class="btn-confirm" onclick="saveEmp()">Speichern</button></div>
+  </div>
+</div>
+<div id="modal-schicht" class="mbg hidden">
+  <div class="modal">
+    <h3 id="ms-title">Schicht</h3>
+    <div class="field"><label>Bezeichnung</label><input type="text" id="sch-name" class="fi" placeholder="Früh 6"></div>
+    <div class="field"><label>Beginn</label><input type="time" id="sch-start" class="fi"></div>
+    <div class="field"><label>Ende</label><input type="time" id="sch-end" class="fi"></div>
+    <div class="field"><label>Typ</label>
+      <select id="sch-type" class="fi"><option value="frueh">Früh</option><option value="spaet">Spät</option><option value="nacht">Nacht</option></select>
+    </div>
+    <div class="field"><label>Farbe</label><input type="color" id="sch-color" value="#30c8d6" style="width:60px;height:34px;border:none;background:none;cursor:pointer;padding:0;"></div>
+    <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);font-weight:400;text-transform:none;letter-spacing:0;"><input type="checkbox" id="sch-azubi" style="accent-color:var(--accent);width:14px;height:14px;"> Für Azubis erlaubt</label></div>
+    <div class="ma"><button class="btn-ghost" onclick="closeM('modal-schicht')">Abbrechen</button><button class="btn-confirm" onclick="saveSchicht()">Speichern</button></div>
+  </div>
+</div>
+
+<div id="modal-abteilung" class="mbg hidden">
+  <div class="modal">
+    <h3 id="ma-title">Abteilung</h3>
+    <div class="field"><label>Bezeichnung</label><input type="text" id="abt-name" class="fi" placeholder="z.B. Wareneingang"></div>
+    <div class="field"><label>Kürzel (2-3 Zeichen)</label><input type="text" id="abt-id" class="fi" placeholder="z.B. WE" maxlength="5"></div>
+    <div class="ma"><button class="btn-ghost" onclick="closeM('modal-abteilung')">Abbrechen</button><button class="btn-confirm" onclick="saveAbt()">Speichern</button></div>
+  </div>
+</div>
+
+
+<script>
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE CONFIG & DATABASE LAYER
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://dfjkigdggienkvhkaxmv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmamtpZ2RnZ2llbmt2aGtheG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NjI4NDYsImV4cCI6MjA5MzIzODg0Nn0.TJz3GqMzwlKgA2XEdz3WmaCvH1vZhgYfgaWwD7WYuE0';
+
+async function dbQuery(table, method='GET', body=null, params='') {
+  const url = SUPABASE_URL + '/rest/v1/' + table + (params?'?'+params:'');
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method==='POST'?'return=representation':'',
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+  if(!res.ok){ const e=await res.text(); console.error('DB error:',e); return null; }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function dbGet(table, params=''){ return await dbQuery(table,'GET',null,params); }
+async function dbInsert(table, row){ return await dbQuery(table,'POST',row); }
+async function dbUpdate(table, params, row){ return await dbQuery(table,'PATCH',row,params); }
+async function dbDelete(table, params){ return await dbQuery(table,'DELETE',null,params); }
+async function dbUpsert(table, row, onConflict){
+  const url = SUPABASE_URL + '/rest/v1/' + table + '?on_conflict=' + onConflict;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation,resolution=merge-duplicates',
+    },
+    body: JSON.stringify(row)
+  });
+  if(!res.ok){ const e=await res.text(); console.error('Upsert error:',e); return null; }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ── DB LOAD ────────────────────────────────────────────
+async function loadAllData() {
+  showLoadingOverlay(true);
+  try {
+    // Load users
+    const dbUsers = await dbGet('users', 'order=name');
+    if(dbUsers) {
+      users = dbUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        username: u.username,
+        password: u.password_hash,
+        email: u.email||'',
+        phone: u.phone||'',
+        sms: u.sms||false,
+        role: u.role||'employee',
+        type: u.type||'lager',
+        standort: u.standort||'koeln',
+        standorte: u.standorte||[u.standort||'koeln'],
+        abts: u.abts||[''],
+        allowedShifts: u.allowed_shifts||[],
+      }));
+    }
+    // Load schichten
+    const dbSch = await dbGet('schichten', 'order=start_time');
+    if(dbSch && dbSch.length > 0) {
+      schichten = dbSch.map(s => ({
+        id: s.id, name: s.name, start: s.start_time, end: s.end_time,
+        type: s.type, rowClass: s.row_class, azubi: s.azubi||false
+      }));
+    }
+    // Load shifts
+    const dbShifts = await dbGet('shifts');
+    if(dbShifts) {
+      shifts = {};
+      dbShifts.forEach(s => {
+        if(!shifts[s.user_id]) shifts[s.user_id] = {};
+        shifts[s.user_id][s.kw_key] = {shift: s.shift_id||'-', comment: s.comment||''};
+      });
+    }
+    // Load krankmeldungen
+    const dbK = await dbGet('krankmeldungen', 'order=from_date');
+    if(dbK) {
+      krankmeldungen = dbK.map(k => ({
+        id: k.id, uid: k.user_id,
+        fromDate: k.from_date, toDate: k.to_date,
+        offen: k.offen||false
+      }));
+      nextKrankId = Math.max(0, ...krankmeldungen.map(k=>k.id)) + 1;
+    }
+    // Load urlaube
+    const dbU = await dbGet('urlaube', 'order=from_date');
+    if(dbU) {
+      urlaube = dbU.map(u => ({
+        id: u.id, uid: u.user_id,
+        fromDate: u.from_date, toDate: u.to_date
+      }));
+      nextUrlaubId = Math.max(0, ...urlaube.map(u=>u.id)) + 1;
+    }
+    // Load freigaben
+    const dbF = await dbGet('freigaben');
+    if(dbF) {
+      freigaben = {};
+      dbF.forEach(f => { freigaben[f.kw_key+'_'+f.standort] = {by:f.by_username,name:f.by_name,at:f.at_date}; });
+    }
+    // Load night groups
+    const dbNG = await dbGet('night_groups');
+    if(dbNG && dbNG.length > 0) {
+      nightGroups = dbNG.map(g => ({id:g.id,name:g.name,standort:g.standort||'koeln',userIds:g.user_ids||[]}));
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+  }
+  showLoadingOverlay(false);
+}
+
+function showLoadingOverlay(show) {
+  let el = document.getElementById('loading-overlay');
+  if(!el) {
+    el = document.createElement('div');
+    el.id = 'loading-overlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(15,17,23,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;';
+    el.innerHTML = '<div style="width:36px;height:36px;border:3px solid rgba(255,255,255,.1);border-top-color:#e07820;border-radius:50%;animation:spin .8s linear infinite;"></div><div style="color:#fff;font-size:14px;font-weight:500;">Daten werden geladen...</div>';
+    document.body.appendChild(el);
+    if(!document.querySelector('#spin-style')) {
+      const s=document.createElement('style');s.id='spin-style';
+      s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// ── DB SAVE HELPERS ────────────────────────────────────
+async function dbSaveShift(uid, kwKey, shiftId, comment) {
+  await dbUpsert('shifts', {user_id:uid, kw_key:kwKey, shift_id:shiftId, comment:comment||''}, 'user_id,kw_key');
+}
+async function dbSaveUser(u) {
+  const row = {
+    name:u.name,
+    username:u.username,
+    password_hash:u.password,
+    email:u.email||'',
+    phone:u.phone||'',
+    sms:u.sms||false,
+    role:u.role||'employee',
+    type:u.type||'lager',
+    standort:u.standort||currentStandort,
+    standorte:u.standorte||[u.standort||currentStandort],
+    abts:u.abts||[''],
+    allowed_shifts:u.allowedShifts||[]
+  };
+  console.log('Saving user:', row);
+  if(u.id && u.id > 0) {
+    const res=await dbUpdate('users','id=eq.'+u.id, row);
+    console.log('Update result:', res);
+  } else {
+    const res = await dbInsert('users', row);
+    console.log('Insert result:', res);
+    if(res && res[0] && res[0].id) {
+      u.id = res[0].id;
+    } else {
+      throw new Error('Kein ID zurück von Datenbank. Prüfe Supabase.');
+    }
+  }
+  return u;
+}
+async function dbDeleteUser(uid) { await dbDelete('users','id=eq.'+uid); }
+async function dbSaveKrank(k) {
+  const row = {user_id:k.uid,from_date:k.fromDate,to_date:k.toDate||null,offen:k.offen||false,standort:currentStandort};
+  if(k.id && k.id > 0) { await dbUpdate('krankmeldungen','id=eq.'+k.id,row); }
+  else { const r=await dbInsert('krankmeldungen',row); if(r&&r[0])k.id=r[0].id; }
+}
+async function dbDeleteKrank(id) { await dbDelete('krankmeldungen','id=eq.'+id); }
+async function dbSaveUrlaub(u) {
+  const row = {user_id:u.uid,from_date:u.fromDate,to_date:u.toDate,standort:currentStandort};
+  if(u.id && u.id > 0) { await dbUpdate('urlaube','id=eq.'+u.id,row); }
+  else { const r=await dbInsert('urlaube',row); if(r&&r[0])u.id=r[0].id; }
+}
+async function dbDeleteUrlaub(id) { await dbDelete('urlaube','id=eq.'+id); }
+async function dbSaveFreigabe(kwKey, standort, data) {
+  if(data) {
+    await dbUpsert('freigaben',{kw_key:kwKey,standort,by_username:data.by,by_name:data.name,at_date:data.at},'kw_key,standort');
+  } else {
+    await dbDelete('freigaben','kw_key=eq.'+kwKey+'&standort=eq.'+standort);
+  }
+}
+async function dbSaveNightGroups() {
+  // Delete all for this standort and re-insert
+  await dbDelete('night_groups','standort=eq.'+currentStandort);
+  for(const g of nightGroups.filter(x=>x.standort===currentStandort||!x.standort)) {
+    await dbInsert('night_groups',{name:g.name,standort:currentStandort,user_ids:g.userIds});
+  }
+}
+// ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════
+// SCHICHTEN
+// ══════════════════════════════════════
+let schichten = [
+  {id:'F5', name:'Frühschicht', start:'05:00',end:'13:00',type:'frueh',rowClass:'row-frueh',azubi:false},
+  {id:'F6', name:'Frühschicht', start:'06:00',end:'14:00',type:'frueh',rowClass:'row-frueh',azubi:true},
+  {id:'F8', name:'Tagschicht',  start:'08:00',end:'16:00',type:'frueh',rowClass:'row-tag',  azubi:false},
+  {id:'F9', name:'Tagschicht',  start:'09:00',end:'17:00',type:'frueh',rowClass:'row-tag',  azubi:true},
+  {id:'F10',name:'Tagschicht',  start:'10:00',end:'18:00',type:'frueh',rowClass:'row-tag',  azubi:false},
+  {id:'S12',name:'Spätschicht', start:'12:00',end:'20:00',type:'spaet',rowClass:'row-spaet',azubi:false},
+  {id:'S15',name:'Spätschicht', start:'15:00',end:'23:00',type:'spaet',rowClass:'row-spaet',azubi:false},
+  {id:'N21',name:'Nachtschicht',start:'21:00',end:'05:00',type:'nacht',rowClass:'row-nacht',azubi:false},
+];
+let nextSchId=100;
+
+// ══════════════════════════════════════
+// USERS
+// ══════════════════════════════════════
+// Abteilungen mit automatischer Bereichszuweisung
+const ABTEILUNGEN = [
+  {id:'',   label:'Normal Lager',  type:'lager'},
+  {id:'WE', label:'Wareneingang',  type:'lager'},
+  {id:'PS', label:'Plattensäge',   type:'saege'},
+  {id:'TP', label:'Tourenplanung', type:'lager'},
+  {id:'LS', label:'Leitstand',     type:'leitstand'},
+  {id:'AZ', label:'Azubi',         type:'azubi'},
+  {id:'KU', label:'KeyUser',        type:'lager'},
+];
+function abtFromId(id){return ABTEILUNGEN.find(a=>a.id===(id||''))||ABTEILUNGEN[0];}
+function primaryType(abts){return abtFromId((abts||[])[0]||'').type;}
+function abtLabels(abts){return(abts||[]).map(id=>abtFromId(id).label).join(', ')||'Normal Lager';}
+let users=[
+  {id:1,  name:'Admin User',              username:'admin',    password:'admin123',  email:'admin@firma.de',       role:'admin',    type:'lager',     abts:[''],    phone:'',sms:false, standorte:['koeln','dortmund'], standort:'koeln', allowedShifts:['F5','F6','F8','F10','S12','S15','N21']},
+  {id:2,  name:'Thiruchelvam, Milfore',   username:'thiruch',  password:'pass123',   email:'thiruch@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F5','F6']},
+  {id:3,  name:'Pakosch, Herbert',        username:'pakosch',  password:'pass123',   email:'pakosch@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F5','F6']},
+  {id:4,  name:'Fegele, Andreas',         username:'fegele',   password:'pass123',   email:'fegele@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F6','F8']},
+  {id:5,  name:'Morbano, Gianfranco',     username:'morbano',  password:'pass123',   email:'morbano@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F6','F8']},
+  {id:6,  name:'Schmitz, Thomas',         username:'schmitz',  password:'pass123',   email:'schmitz@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F6','F8','S12']},
+  {id:7,  name:'Alo, Sahad Khairi',       username:'alo',      password:'pass123',   email:'alo@firma.de',         role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F6','F8']},
+  {id:8,  name:'La Pusata, Damiano',      username:'lapusata', password:'pass123',   email:'lapusata@firma.de',    role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F8','S12']},
+  {id:9,  name:'Heller, Jason',           username:'heller',   password:'pass123',   email:'heller@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F8','S12']},
+  {id:10, name:'Pelzer, Monika',          username:'pelzer',   password:'pass123',   email:'pelzer@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F10','S12']},
+  {id:11, name:'Habeck, Kai',             username:'habeck',   password:'pass123',   email:'habeck@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:12, name:'Bevilacqua, Luigi',       username:'bevilacqua',password:'pass123',  email:'bevi@firma.de',        role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:13, name:'Wiesenmüller, Ralf',      username:'wiesenm',  password:'pass123',   email:'wiesenm@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:14, name:'Seidich, Thomas',         username:'seidich',  password:'pass123',   email:'seidich@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:15, name:'Mostert, Fabian',         username:'mostert',  password:'pass123',   email:'mostert@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:16, name:'Güve, Volkan',            username:'gueve',    password:'pass123',   email:'gueve@firma.de',       role:'employee', standort:'koeln', type:'lager',     abts:['TP'],  phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:17, name:'Mustafovic, Stole',       username:'mustafovic',password:'pass123',  email:'mustafovic@firma.de',  role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:18, name:'Vidal Braun, Thomas',     username:'vidalbr',  password:'pass123',   email:'vidalbr@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:19, name:'Korkmaz, Hasan',          username:'korkmaz',  password:'pass123',   email:'korkmaz@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:20, name:'Osatie, Osas',            username:'osatie',   password:'pass123',   email:'osatie@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:21, name:'Strack, Franz Peter',     username:'strack',   password:'pass123',   email:'strack@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:22, name:'Musliov, Ilir',           username:'musliov',  password:'pass123',   email:'musliov@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:23, name:'Lapp, Waldemar',          username:'lapp',     password:'pass123',   email:'lapp@firma.de',        role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:24, name:'Dick, Willi',             username:'dick',     password:'pass123',   email:'dick@firma.de',        role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15']},
+  {id:25, name:'Zimmermann, Maximilian',  username:'zimmermann',password:'pass123',  email:'zimmermann@firma.de',  role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['S15','N21']},
+  {id:26, name:'Schneider, Niklas',       username:'schneider',password:'pass123',   email:'schneider@firma.de',   role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['N21']},
+  {id:27, name:'Giambrone, Gaetano',      username:'giambrone',password:'pass123',   email:'giambrone@firma.de',   role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['N21']},
+  {id:28, name:'Desija, Ravi',            username:'desija',   password:'pass123',   email:'desija@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['N21']},
+  {id:29, name:'Rakowez, Valeri',         username:'rakowez',  password:'pass123',   email:'rakowez@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['N21']},
+  {id:30, name:'Hoschek, Andreas',        username:'hoschek',  password:'pass123',   email:'hoschek@firma.de',     role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F5','F6','S12','S15']},
+  {id:31, name:'Karaman, Ferhat Musa',    username:'karaman',  password:'pass123',   email:'karaman@firma.de',     role:'employee', standort:'koeln', type:'leitstand', abts:['LS'],  phone:'',sms:false, allowedShifts:['F8']},
+  {id:32, name:'Peters, Dominik',         username:'peters',   password:'pass123',   email:'peters@firma.de',      role:'employee', standort:'koeln', type:'leitstand', abts:['LS'],  phone:'',sms:false, allowedShifts:['F9']},
+  {id:33, name:'Yanev, Isus',             username:'yanev',    password:'pass123',   email:'yanev@firma.de',       role:'employee', standort:'koeln', type:'leitstand', abts:['LS'],  phone:'',sms:false, allowedShifts:['F9']},
+  {id:34, name:'Schwade, Heinz-Jürgen',   username:'schwade',  password:'pass123',   email:'schwade@firma.de',     role:'employee', standort:'koeln', type:'leitstand', abts:['TP'],  phone:'',sms:false, allowedShifts:['S12','S15']},
+  {id:35, name:'Todaro, Marco',           username:'todaro',   password:'pass123',   email:'todaro@firma.de',      role:'employee', standort:'koeln', type:'lager',     abts:[''],    phone:'',sms:false, allowedShifts:['F5','F6']},
+  // ── Dortmund Mitarbeiter ──────────────────────────────────
+  {id:40,name:'Bauer, Klaus',        username:'bauer',       password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:[''],   phone:'',sms:false,allowedShifts:['F5','F6','F8']},
+  {id:41,name:'Fischer, Maria',      username:'fischer',     password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:['WE'], phone:'',sms:false,allowedShifts:['F6','F8','S12']},
+  {id:42,name:'Hoffmann, Stefan',    username:'hoffmann',    password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:[''],   phone:'',sms:false,allowedShifts:['S12','S15']},
+  {id:43,name:'Krause, Andrea',      username:'krause',      password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:[''],   phone:'',sms:false,allowedShifts:['F8','F10']},
+  {id:44,name:'Lehmann, Dirk',       username:'lehmann',     password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:['TP'], phone:'',sms:false,allowedShifts:['S12','S15']},
+  {id:45,name:'Müller, Sabine',      username:'mueller.s',   password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:[''],   phone:'',sms:false,allowedShifts:['F5','F6']},
+  {id:46,name:'Neumann, Frank',      username:'neumann',     password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:[''],   phone:'',sms:false,allowedShifts:['N21']},
+  {id:47,name:'Schmidt, Petra',      username:'schmidt.p',   password:'pass123',email:'',role:'employee',standort:'dortmund',type:'lager',   abts:[''],   phone:'',sms:false,allowedShifts:['S15']},
+  {id:48,name:'Wagner, Björn',       username:'wagner',      password:'pass123',email:'',role:'employee',standort:'dortmund',type:'leitstand',abts:['LS'],phone:'',sms:false,allowedShifts:['F8','S12']},
+  {id:49,name:'Zimmermann, Julia',   username:'zimmermann.j',password:'pass123',email:'',role:'employee',standort:'dortmund',type:'azubi',   abts:['AZ'], phone:'',sms:false,allowedShifts:['F6','F9']}
+];
+
+// ══ STANDORTE ══════════════════════════════════════════════
+// Each admin can see one or more locations
+// Each user belongs to a location
+let standorte=[
+  {id:'koeln',   name:'Köln'},
+  {id:'dortmund',name:'Dortmund'},
+];
+let currentStandort='koeln'; // active location filter
+
+// Add standort field to all existing users (default: koeln)
+// (done inline in user definitions)
+
+let shifts={};
+let krankmeldungen=[];
+let urlaube=[];
+let nextKrankId=1,nextUrlaubId=1,nextSchId2=100;
+let currentUser=null,kwOffset=0,dashKWOffset=0,dashDayOffset=0,editEmpId=null,editSchId=null;
+let freigaben={}; // freigaben[kwKey+standort] = {by, at, name}
+// Auto-Plan Verteilung (Prozent der verfügbaren MA)
+let autoplanSettings={
+  koeln:    {frueh:40, spaet:40, nacht:10},
+  dortmund: {frueh:40, spaet:40, nacht:10},
+};
+function apSet(s){return autoplanSettings[s]||autoplanSettings.koeln;}
+try{const _saved=localStorage.getItem('autoplanSettings');if(_saved){const _p=JSON.parse(_saved);['koeln','dortmund'].forEach(x=>{if(_p[x])autoplanSettings[x]=_p[x];});}}catch(e){}
+
+// Nachtschicht-Gruppen (rotieren im 2-Wochen-Rhythmus)
+// nightGroups: [{id, name, userIds[]}]
+let nightGroups=[
+  {id:1, name:'Nachtgruppe 1', userIds:[]},
+  {id:2, name:'Nachtgruppe 2', userIds:[]},
+  {id:3, name:'Nachtgruppe 3', userIds:[]},
+];
+// Startdatum der Rotation (KW 1 = Gruppe 1 beginnt)
+const NIGHT_ROTATION_START_KW=1;
+const NIGHT_ROTATION_START_YEAR=2026;
+
+// Returns which nightGroup is "active" for a given KW
+function activeNightGroup(y,kw){
+  if(!nightGroups.length)return null;
+  // Total 2-week blocks since start
+  const startKey=kwKey(NIGHT_ROTATION_START_YEAR,NIGHT_ROTATION_START_KW);
+  const startMon=mondayOf(NIGHT_ROTATION_START_YEAR,NIGHT_ROTATION_START_KW);
+  const thisMon=mondayOf(y,kw);
+  const weekDiff=Math.round((thisMon-startMon)/(7*24*3600*1000));
+  const blockIndex=Math.floor(weekDiff/2); // every 2 weeks
+  const groupIndex=((blockIndex%nightGroups.length)+nightGroups.length)%nightGroups.length;
+  return nightGroups[groupIndex];
+}
+let notifLog=[{to:'Alle',subject:'Schichtplan KW 20 veröffentlicht',time:'vor 2 Tagen',bg:'#fff7ed',ic:'#ea580c'}];
+
+// ══════════════════════════════════════
+// DATE / KW HELPERS
+// ══════════════════════════════════════
+function isoWeek(d){const t=new Date(d);t.setHours(0,0,0,0);t.setDate(t.getDate()+3-(t.getDay()+6)%7);const w1=new Date(t.getFullYear(),0,4);return 1+Math.round(((t-w1)/864e5-3+(w1.getDay()+6)%7)/7);}
+function isoYear(d){const t=new Date(d);t.setDate(t.getDate()+3-(t.getDay()+6)%7);return t.getFullYear();}
+function kwKey(y,w){return`${y}-W${String(w).padStart(2,'0')}`;}
+function kwLabel(y,w){return`KW ${String(w).padStart(2,'0')} / ${y}`;}
+function mondayOf(y,w){const j=new Date(y,0,4);const dow=(j.getDay()+6)%7;const m=new Date(j);m.setDate(j.getDate()-dow+(w-1)*7);return m;}
+function sundayOf(y,w){const m=mondayOf(y,w);const s=new Date(m);s.setDate(m.getDate()+6);return s;}
+function kwRange(y,w){
+  const m=mondayOf(y,w);
+  const f=new Date(m);f.setDate(m.getDate()+4); // Friday
+  return m.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' – '+f.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function fridayOf(y,w){const m=mondayOf(y,w);const f=new Date(m);f.setDate(m.getDate()+4);return f;}
+function kwRangeDots(y,w){const m=mondayOf(y,w);const f=fridayOf(y,w);return m.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' — '+f.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function curKW(){const t=new Date();return{y:isoYear(t),kw:isoWeek(t)};}
+function addDelta(y,kw,d){let w=kw+d,yr=y;while(w>52){w-=52;yr++;}while(w<1){w+=52;yr--;}return{y:yr,kw:w};}
+function curOff(){return addDelta(curKW().y,curKW().kw,kwOffset);}
+function dateISO(d){return d.toISOString().slice(0,10);}
+function parseDate(s){const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function fmtDate(s){return parseDate(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+
+function getEntry(uid,key){return((shifts[uid]||{})[key])||{shift:'-',comment:''};}
+function setEntry(uid,key,sh,comment){if(!shifts[uid])shifts[uid]={};shifts[uid][key]={shift:sh,comment:comment??getEntry(uid,key).comment};}
+function getShiftForKW(uid,y,kw){return getEntry(uid,kwKey(y,kw)).shift||'-';}
+
+// Returns short weekday string like "Mo", "Di" etc.
+function shortDay(d){return['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];}
+
+// Returns human-readable partial-urlaub label, e.g. "Fr Urlaub" or "Mo–Do Urlaub"
+function partialUrlaubLabel(from,to,mon,sun,type){
+  // Clamp to the work week (Mon–Fri)
+  const fri=new Date(mon);fri.setDate(mon.getDate()+4);
+  const workEnd=fri<sun?fri:sun; // cap at Friday
+  const start=from<mon?mon:from;
+  const end=to>workEnd?workEnd:to;
+  const sD=shortDay(start),eD=shortDay(end);
+  const label=type==='krank'?'Krank':'Urlaub';
+  if(dateISO(start)===dateISO(end)) return sD+' '+label;
+  if(sD===eD) return sD+' '+label;
+  return sD+'–'+eD+' '+label;
+}
+
+function getAbsenceInKW(uid,y,kw){
+  const mon=mondayOf(y,kw),sun=sundayOf(y,kw);
+  for(const k of krankmeldungen){
+    if(k.uid!==uid)continue;
+    const from=parseDate(k.fromDate),to=k.toDate?parseDate(k.toDate):parseDate(dateISO(sundayOf(isoYear(from),isoWeek(from)))); // offen: only current KW
+    if(from>sun||to<mon)continue;
+    const fri=new Date(mon);fri.setDate(mon.getDate()+4);
+    const endsInKW=to<=fri; // work week ends Friday
+    let resumesDate=null;
+    if(endsInKW){const r=new Date(to);r.setDate(to.getDate()+1);resumesDate=dateISO(r);}
+    return{type:'krank',rec:k,endsInKW,resumesDate,partial:false};
+  }
+  for(const u of urlaube){
+    if(u.uid!==uid)continue;
+    const from=parseDate(u.fromDate),to=parseDate(u.toDate);
+    if(from>sun||to<mon)continue;
+    // Full KW = covers entire work week (Mon–Fri), full calendar week, or set via dropdown
+    const fri=new Date(mon);fri.setDate(mon.getDate()+4);
+    const isFullKW = u.fromDropdown===true || (from<=mon && to>=fri);
+    const endsInKW=to<=fri; // work week ends Friday
+    let resumesDate=null;
+    if(endsInKW&&!isFullKW){const r=new Date(to);r.setDate(to.getDate()+1);resumesDate=dateISO(r);}
+    const partialLabel=!isFullKW?partialUrlaubLabel(from,to,mon,sun,'urlaub'):null;
+    return{type:'urlaub',rec:u,endsInKW,resumesDate,partial:!isFullKW,partialLabel};
+  }
+  return null;
+}
+
+// Ensure all users have type derived from abts
+function syncUserTypes(){users.forEach(u=>{if(u.abts&&!u.type)u.type=primaryType(u.abts);else if(u.abts)u.type=primaryType(u.abts);});}
+function initShifts(){
+  syncUserTypes();
+  const{y,kw}=curKW();
+  users.filter(u=>u.role==='employee').forEach((u,idx)=>{
+    for(let d=-4;d<=14;d++){
+      const{y:yr,kw:w}=addDelta(y,kw,d);
+      const key=kwKey(yr,w);
+      if((shifts[u.id]||{})[key])return;
+      const al=u.allowedShifts||[];
+      if(!al.length){setEntry(u.id,key,'-','');return;}
+      const fr=al.filter(id=>schichten.find(s=>s.id===id&&s.type==='frueh'));
+      const sp=al.filter(id=>schichten.find(s=>s.id===id&&s.type==='spaet'));
+      const na=al.filter(id=>schichten.find(s=>s.id===id&&s.type==='nacht'));
+      const block=Math.floor((w-1)/2);
+      let pick;
+      if(fr.length&&sp.length)pick=(block+idx)%2===0?fr[0]:sp[0];
+      else if(fr.length)pick=fr[0];
+      else if(sp.length)pick=sp[0];
+      else if(na.length)pick=na[0];
+      else pick=al[0];
+      setEntry(u.id,key,pick,'');
+    }
+  });
+}
+
+// ══════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════
+function doLogin(){
+  const u=document.getElementById('lu').value.trim();
+  const p=document.getElementById('lp').value;
+  const errEl=document.getElementById('login-error');
+  if(!u||!p){errEl.textContent='Bitte alle Felder ausfüllen.';errEl.classList.remove('hidden');return;}
+  showLoadingOverlay(true);
+  loadAllData().then(()=>{
+    syncUserTypes();
+    const user=users.find(x=>x.username===u&&x.password===p);
+    showLoadingOverlay(false);
+    if(!user){
+      errEl.textContent='Falscher Benutzername oder Passwort.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    currentUser=user;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    setupUI();
+    navTo('dashboard',document.querySelector('[data-page="dashboard"]'));
+    playSound('login');
+  }).catch(()=>{
+    showLoadingOverlay(false);
+    errEl.textContent='Verbindungsfehler. Bitte nochmal versuchen.';
+    errEl.classList.remove('hidden');
+  });
+}
+function doLogout(){
+  currentUser=null;document.getElementById('app').classList.add('hidden');document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('lu').value='';document.getElementById('lp').value='';document.getElementById('login-error').classList.add('hidden');
+}
+function setupUI(){
+  const adm=currentUser.role==='admin';
+  document.querySelectorAll('.admin-only').forEach(e=>e.style.display=adm?'':'none');
+  document.getElementById('sb-av').textContent=currentUser.name.split(/[, ]+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-role').textContent=adm?'Administrator':typeLabel(currentUser.type);
+  renderNotifEmps();renderNotifHistory();populateSels();
+  currentStandort=currentUser.standort||'koeln';
+  renderNDLSelector();
+  initFahrerBereich();
+  // Hide fahrer nav by default
+  document.querySelectorAll('.fahrer-nav').forEach(el=>el.classList.add('hidden'));
+}
+function populateSels(){['km-emp','ul-emp'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML=getActiveEmps().sort((a,b)=>a.name.localeCompare(b.name,'de')).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');});}
+function navTo(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');if(el)el.classList.add('active');
+  playSound('nav');
+  if(page==='dashboard')renderDashboard();
+  if(page==='schichtplan'&&currentUser.role==='admin')renderShiftTable();
+  if(page==='meinplan')renderMeinPlan();
+  if(page==='krankmeldung')renderKranklist();
+  if(page==='urlaub')renderUrlaubList();
+  if(page==='mitarbeiter')renderEmpList();
+  if(page==='schichten')renderSchichtList();
+  if(page==='abteilungen')renderAbtList();
+  if(page==='fahrer-plan'){renderFahrerPlan();}
+  if(page==='fahrer-meinplan'){renderFahrerMeinPlan();}
+  if(page==='fahrer-mitarbeiter'){renderFahrerList();}
+  if(page==='fahrer-krank'){renderFahrerKrankList();}
+  if(page==='fahrer-urlaub'){renderFahrerUrlaubList();}
+  if(page==='benachrichtigung'){renderNotifEmps();populateNotifKWs();renderNotifHistory();}
+  if(page==='einstellungen'){renderColorSwatches();renderAutoplanSliders();renderNightGroups();loadAdminNDLCheckboxes();}
+  if(page==='history')renderHistory();
+  if(page==='profil')renderProfil();
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function sByID(id){return schichten.find(s=>s.id===id);}
+function typeLabel(t){return{lager:'Lager',saege:'Säge',leitstand:'Leitstand / Ex',azubi:'Azubi'}[t]||t;}
+function typeBadge(t){const m={lager:'bg-blue',saege:'bg-amber',leitstand:'bg-purple',azubi:'bg-green'};return`<span class="badge ${m[t]||'bg-gray'}">${typeLabel(t)}</span>`;}
+function shiftSortKey(id){
+  if(!id||id==='-')return 9000;
+  const s=sByID(id);if(!s)return 5000;
+  return{frueh:0,spaet:1000,nacht:2000}[s.type]+parseInt(s.start.replace(':',''));
+}
+function getRowClass(shiftId,absType){
+  if(absType==='krank')return'row-krank';
+  if(absType==='urlaub')return'row-urlaub';
+  if(!shiftId||shiftId==='-')return'row-frei';
+  const s=sByID(shiftId);return s?s.rowClass:'row-frei';
+}
+function escQ(s){return(s||'').replace(/'/g,"&#39;").replace(/"/g,"&quot;");}
+
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+function getDashDate(){
+  const d=new Date();d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+dashDayOffset);
+  return d;
+}
+function renderDashboard(){
+  const dashDate=getDashDate();
+  const isToday=dashDayOffset===0;
+  const y=isoYear(dashDate),kw=isoWeek(dashDate);
+  // Update label
+  const lbl=document.getElementById('dash-day-lbl');
+  if(lbl){
+    if(isToday) lbl.textContent='Heute · '+dashDate.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+    else lbl.textContent=dashDate.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+  }
+  const todayBtn=document.getElementById('dash-today-btn');
+  if(todayBtn)todayBtn.style.opacity=isToday?'0.4':'1';
+  document.getElementById('dash-date').textContent=isToday
+    ?dashDate.toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+    :dashDate.toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const emps=getActiveEmps();
+  const isAdm=currentUser.role==='admin';
+  const cnt={};let kranke=0,urlauber=0;
+  emps.forEach(u=>{
+    const abs=getAbsenceInKW(u.id,y,kw);
+    const isFullAbs=abs&&!(abs.type==='urlaub'&&abs.partial);
+    if(isFullAbs&&abs.type==='krank'){kranke++;}
+    else if(isFullAbs&&abs.type==='urlaub'){urlauber++;}
+    else{const sh=getShiftForKW(u.id,y,kw);cnt[sh]=(cnt[sh]||0)+1;}
+  });
+  const frueh=schichten.filter(s=>s.type==='frueh').reduce((a,s)=>a+(cnt[s.id]||0),0);
+  const spaet=schichten.filter(s=>s.type==='spaet').reduce((a,s)=>a+(cnt[s.id]||0),0);
+  const nacht=schichten.filter(s=>s.type==='nacht').reduce((a,s)=>a+(cnt[s.id]||0),0);
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-lbl">Früh / Tag</div><div class="stat-val" style="color:#0b3d5e">${(isAdm||getFreigabe(y,kw))?frueh+' <span style="font-size:14px;font-weight:500;color:var(--text3);">MA</span>':'🔒'}</div><div class="stat-sub">${kwLabel(y,kw)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Spätschicht</div><div class="stat-val" style="color:#1a4010">${(isAdm||getFreigabe(y,kw))?spaet+' <span style="font-size:14px;font-weight:500;color:var(--text3);">MA</span>':'🔒'}</div><div class="stat-sub">${kwLabel(y,kw)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Nachtschicht</div><div class="stat-val" style="color:#111">${(isAdm||getFreigabe(y,kw))?nacht+' <span style="font-size:14px;font-weight:500;color:var(--text3);">MA</span>':'🔒'}</div><div class="stat-sub">${kwLabel(y,kw)}</div></div>
+    ${isAdm?`<div class="stat-card"><div class="stat-lbl">Abwesend</div><div class="stat-val" style="color:#dc2626">${kranke+urlauber}</div><div class="stat-sub">${kranke} Krank · ${urlauber} Urlaub</div></div>`
+    :`<div class="stat-card"><div class="stat-lbl">Mitarbeiter</div><div class="stat-val">${emps.length} <span style="font-size:14px;font-weight:500;color:var(--text3);">MA</span></div><div class="stat-sub">Gesamt</div></div>`}`;
+  const active=schichten.filter(s=>cnt[s.id]>0);
+  const maxC=Math.max(1,...active.map(s=>cnt[s.id]||0));
+  const rowColors={frueh:'#0b3d5e',spaet:'#1a4010',nacht:'#222'};
+  let lower=`<div class="card"><div class="sc"><h3>Schichtbesetzung — ${kwLabel(y,kw)}</h3></div>
+    ${active.map(s=>`<div class="db">
+      <div class="db-lbl"><span style="display:flex;align-items:center;gap:7px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:${s.rowClass==='row-nacht'?'#222':s.rowClass==='row-spaet'?'#5a8040':s.rowClass==='row-tag'?'#2a7a4a':'#1a6a9a'};display:inline-block;"></span>
+        ${s.name} <span style="color:var(--text3);font-size:11px;font-family:'DM Mono',monospace;">${s.start}</span></span>
+        <span style="font-size:11px;background:var(--bg3);border:1px solid var(--border);padding:1px 7px;border-radius:4px;">${cnt[s.id]||0} MA</span>
+      </div>
+      <div class="db-tr"><div class="db-fl" style="width:${((cnt[s.id]||0)/maxC*100).toFixed(0)}%;background:${s.rowClass==='row-nacht'?'#333':s.rowClass==='row-spaet'?'#5a8040':s.rowClass==='row-tag'?'#2a7a4a':'#1a6a9a'};"></div></div>
+    </div>`).join('')||'<p style="color:var(--text3);font-size:13px;">Keine Einträge.</p>'}
+  </div>`;
+  if(isAdm){
+    const krankeList=emps.map(u=>({u,abs:getAbsenceInKW(u.id,y,kw)})).filter(x=>x.abs&&x.abs.type==='krank').sort((a,b)=>a.u.name.localeCompare(b.u.name,'de'));
+    const urlauberList=emps.map(u=>({u,abs:getAbsenceInKW(u.id,y,kw)})).filter(x=>x.abs&&x.abs.type==='urlaub'&&!x.abs.partial).sort((a,b)=>a.u.name.localeCompare(b.u.name,'de'));
+    function absCard(title,list,badgeClass,badgeLabel,emptyMsg){
+      const rows=list.map(({u,abs})=>{
+        const{y:ay,kw:akw}=(() => {const d=getDashDate();return{y:isoYear(d),kw:isoWeek(d)};})();
+        const sh=getShiftForKW(u.id,ay,akw);const sc=sByID(sh);
+        const timeStr=sc?sc.start:'';
+        return`<div class="abs-row"><div><div style="font-size:13px;font-weight:600;">${u.name}</div><div style="font-size:12px;color:var(--text2);">${abtLabels(u.abts)}${timeStr?' · <span style="font-family:\'DM Mono\',monospace;">'+timeStr+'</span>':''}</div></div><span class="badge ${badgeClass}">${badgeLabel}</span></div>`;
+      }).join('');
+      const empty='<p style="color:var(--text3);font-size:13px;padding:8px 0;">'+emptyMsg+'</p>';
+      return`<div class="card" style="margin-top:14px;"><div class="sc"><h3>${title}</h3></div>${list.length?rows:empty}</div>`;
+    }
+    lower+=absCard('Kranke — '+kwLabel(y,kw),krankeList,'bg-red','Krank','Keine Krankmeldungen.');
+    lower+=absCard('Urlauber — '+kwLabel(y,kw),urlauberList,'bg-amber','Urlaub','Kein Urlaub diese Woche.');
+  } else {
+    const u=currentUser,abs=getAbsenceInKW(u.id,y,kw),sh=getShiftForKW(u.id,y,kw),s=sByID(sh);
+    const rc=abs?(abs.type==='krank'?'var(--krank-t)':'#d97706'):(s?'inherit':'var(--text3)');
+    const nm=abs?(abs.type==='krank'?'Krank':'Urlaub'):(s?s.name:'Frei');
+    const frei=getFreigabe(y,kw);
+    lower+=`<div class="card" style="border-left:3px solid var(--orange-hdr);"><div class="sc"><h3>Meine aktuelle Woche — ${kwLabel(y,kw)}</h3></div>
+    ${frei?`<div style="text-align:center;padding:18px 0;">
+      <div style="font-size:32px;font-weight:700;color:${rc};margin-bottom:4px;">${nm}</div>
+      <div style="font-size:16px;color:var(--text2);font-family:'DM Mono',monospace;">${s&&!abs?s.start+' – '+s.end:'—'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;">${kwRange(y,kw)}</div>
+    </div>`:`<div style="text-align:center;padding:20px 0;"><div style="font-size:28px;margin-bottom:8px;">🔒</div><div style="font-size:14px;font-weight:600;">Noch nicht freigegeben</div></div>`}
+    </div>`;
+  }
+  document.getElementById('dash-lower').innerHTML=lower;
+}
+
+// ══════════════════════════════════════
+// SCHICHTPLAN — Aushang-Design
+// ══════════════════════════════════════
+function changeDashDay(dir){
+  if(dir===0){dashDayOffset=0;}else{dashDayOffset+=dir;}
+  renderDashboard();
+}
+function changeKW(dir){kwOffset+=dir;renderShiftTable();}
+function goToday(){kwOffset=0;renderShiftTable();}
+
+function renderShiftTable(){
+  const{y,kw}=curOff();
+  const key=kwKey(y,kw);
+  const{y:cy,kw:ck}=curKW();
+  document.getElementById('kw-lbl').textContent=kwLabel(y,kw);
+  document.getElementById('sp-sub').textContent=kwRange(y,kw)+(y===cy&&kw===ck?' — aktuelle Woche':'');
+  const isAdm=currentUser.role==='admin';
+  if(isAdm)updateFreigabeBtn();
+  const emps=getActiveEmps();
+
+  // All non-azubi in main column, azubis at bottom
+  const mainEmps=emps.filter(u=>u.type!=='azubi');
+  const leitstandEmps=[];  // merged into main
+  const azubiEmps=emps.filter(u=>u.type==='azubi');
+
+  const sortFn=(a,b)=>{
+    const sa=shiftSortKey(getShiftForKW(a.id,y,kw)),sb=shiftSortKey(getShiftForKW(b.id,y,kw));
+    if(sa!==sb)return sa-sb;
+    return a.name.localeCompare(b.name,'de');
+  };
+  mainEmps.sort(sortFn);leitstandEmps.sort(sortFn);azubiEmps.sort(sortFn);
+
+  // Build rows for a group
+  function buildRows(list){
+    return list.map(u=>{
+      const abs=getAbsenceInKW(u.id,y,kw);
+      const{shift,comment}=getEntry(u.id,key);
+      const sh=shift||'-';
+      const s=sByID(sh);
+
+      // Partial urlaub: treat as normal shift, add note to Sonstiges
+      const isPartialUrlaub = abs?.type==='urlaub' && abs.partial;
+      const isKrank = abs?.type==='krank';
+      const isFullUrlaub = abs?.type==='urlaub' && !abs.partial;
+      const isFullAbsence = isFullUrlaub; // only full-week urlaub hides shift
+
+      // Row color: krank=red, full urlaub=gray, else normal
+      const rc=isKrank?'row-krank':(isFullUrlaub?'row-urlaub':getRowClass(sh,null));
+      // Shift label: krank keeps shift name, full urlaub shows "Urlaub"
+      let schichtLabel=isFullUrlaub?'Urlaub':(s?s.name:'Frei');
+      // Time: krank keeps time, full urlaub hides it
+      let zeitLabel=s?s.start:''; // always show time if shift assigned
+
+      // Sonstiges: partial urlaub label + krank resume note + manual comment
+      let sonstiges=comment||'';
+      // Partial urlaub auto-note
+      if(isPartialUrlaub && abs.partialLabel){
+        sonstiges=(sonstiges?sonstiges+' · ':'')+abs.partialLabel;
+      }
+      // Krank resume note
+      if(isKrank&&abs.endsInKW&&abs.resumesDate){
+        const rd=parseDate(abs.resumesDate);
+        const wd=rd.toLocaleDateString('de-DE',{weekday:'long'});
+        const rSch=sByID(sh);
+        sonstiges=(sonstiges?sonstiges+' · ':'')+`ab ${wd} wieder${rSch?' '+rSch.name:''}`;
+      }
+      // PS badge?
+      const isPStag=comment==='PS';
+      const sonstCell=isPStag?`<div class="ps-cell" style="padding:5px 8px;">${comment}</div>`:sonstiges;
+
+      if(isAdm){
+        const allowed=u.allowedShifts||[];
+        const opts=['<option value="-">Frei</option>','<option value="U">Urlaub</option>'];
+        schichten.forEach(sc=>{
+          if(u.type==='azubi'&&!sc.azubi)return;
+          if(allowed.length&&!allowed.includes(sc.id))return;
+          opts.push(`<option value="${sc.id}" ${sh===sc.id?'selected':''}>${sc.name} ${sc.start}</option>`);
+        });
+        const typeOpts=['lager','saege','leitstand','azubi'].map(t=>`<option value="${t}" ${u.type===t?'selected':''}>${typeLabel(t)}</option>`).join('');
+        const abtDisplay=(u.abts||[]).map(id=>{const a=abtFromId(id);return a.label!=='Normal Lager'?a.label:''}).filter(Boolean).join('/');
+        const{y:ry,kw:rkw}=curOff();const rNG=activeNightGroup(ry,rkw);
+        const inNG=nightGroups.find(g=>g.userIds.includes(u.id));
+        const ngBadge=inNG?`<span style="font-size:9px;background:rgba(249,115,22,0.12);color:var(--orange-hdr);border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:700;">${inNG.name.replace('Nachtgruppe','N')}</span>`:'';
+        return`<div class="sp-row ${rc}">
+          <div class="name">${u.name}${ngBadge}</div>
+          <div><select class="isel" onchange="inlineShift(${u.id},'${key}',this.value)">${opts.join('')}</select>${isFullUrlaub?'<div style="font-size:9px;color:var(--amber);margin-top:2px;">Urlaub</div>':''}</div>
+          <div class="zeit">${abs?'':zeitLabel}</div>
+          <div class="abt" style="font-size:10px;">${isKrank?'<span style=\"color:#dc2626;font-weight:700;font-size:10px;\">Krank</span>':`<select class=\"isel\" style=\"font-size:10px;padding:2px 4px;\" onchange=\"inlineAbt(${u.id},this.value)\">` + ABTEILUNGEN.map(a=>`<option value=\"${a.id}\" ${(u.abts&&u.abts[0]||'')==a.id?'selected':''}>` + a.label + `</option>`).join('') + `</select>`}</div>
+          <div>${abs?`<span style="font-size:10px;font-style:italic;">${sonstiges}</span>`:`<input type="text" class="ci" value="${escQ(comment)}" placeholder="Sonstiges / PS..." onchange="inlineComment(${u.id},'${key}',this.value)">`}</div>
+        </div>`;
+      } else {
+        const abtDisplay2=(u.abts||[]).map(id=>{const a=abtFromId(id);return a.label!=='Normal Lager'?a.label:''}).filter(Boolean).join('/');
+        return`<div class="sp-row ${rc}">
+          <div class="name">${u.name}</div>
+          <div style="font-weight:600;">${schichtLabel}</div>
+          <div class="zeit">${zeitLabel}</div>
+          <div class="abt" style="font-size:10px;">${abtDisplay2}</div>
+          <div class="sonstiges ${isPStag?'ps-cell':''}">${sonstCell}</div>
+        </div>`;
+      }
+    }).join('');
+  }
+
+  // Bereich-wechsel inline (admin)
+  function buildTypeDropdown(u){
+    if(!isAdm)return typeBadge(u.type);
+    const opts=['lager','saege','leitstand','azubi'].map(t=>`<option value="${t}" ${u.type===t?'selected':''}>${typeLabel(t)}</option>`).join('');
+    return`<select class="isel" style="font-size:11px;font-weight:600;" onchange="inlineType(${u.id},this.value,true)">${opts}</select>`;
+  }
+
+  const fri=fridayOf(y,kw);
+  const dateStr=`${mondayOf(y,kw).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})} — ${fri.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}`;
+
+  // Column header
+  const colHdr=`<div class="sp-col-hdr">
+    <div>Namen</div><div>Schichten</div><div>Zeiten</div><div>Abteilung</div><div>Sonstiges</div>
+  </div>`;
+
+  // Right column: Leitstand groups
+  const colHdrR=`<div class="sp-col-hdr-r">
+    <div>Namen</div><div>Schichten</div><div>Zeiten</div><div>Abt.</div>
+  </div>`;
+  function buildRowsRight(list){
+    return list.map(u=>{
+      const abs=getAbsenceInKW(u.id,y,kw);
+      const isKrank=abs?.type==='krank';
+      const isFullUrlaub=abs&&!(abs.type==='urlaub'&&abs.partial);
+      const{shift,comment}=getEntry(u.id,key);
+      const sh=shift||'-';const s=sByID(sh);
+      const rc=isKrank?'row-krank':(isFullUrlaub?'row-urlaub':getRowClass(sh,null));
+      const schichtLabel=isFullUrlaub?'Urlaub':(s?s.name:'Frei');
+      const zeitLabel=isFullUrlaub?'':(s?s.start:'');
+      const abtDisplay=(u.abts||[]).map(id=>{const a=abtFromId(id);return a.label!=='Normal Lager'?a.label:''}).filter(Boolean).join('/');
+      if(isAdm){
+        const allowed=u.allowedShifts||[];
+        const opts=['<option value="-">Frei</option>','<option value="U">Urlaub</option>'];
+        schichten.forEach(sc=>{if(u.type==='azubi'&&!sc.azubi)return;if(allowed.length&&!allowed.includes(sc.id))return;opts.push(`<option value="${sc.id}" ${sh===sc.id?'selected':''}>${sc.name} ${sc.start}</option>`);});
+        return`<div class="sp-row-r ${rc}">
+          <div class="name">${u.name}</div>
+          <div>${isFullUrlaub?'<span style="font-weight:700;">Urlaub</span>':`<select class="isel" onchange="inlineShift(${u.id},'${key}',this.value)">${opts.join('')}</select>`}</div>
+          <div class="zeit">${zeitLabel}</div>
+          <div class="abt" style="font-size:10px;">${isKrank?'<span style="color:#dc2626;font-weight:700;">Krank</span>':abtDisplay}</div>
+        </div>`;
+      } else {
+        return`<div class="sp-row-r ${rc}">
+          <div class="name">${u.name}</div>
+          <div style="font-weight:600;">${schichtLabel}</div>
+          <div class="zeit">${zeitLabel}</div>
+          <div class="abt" style="font-size:10px;">${abtDisplay}</div>
+        </div>`;
+      }
+    }).join('');
+  }
+  let rightContent='';
+  if(leitstandEmps.length>0){
+    rightContent+=`<div class="sp-group-sep">Leitstand / Ex</div>${buildRowsRight(leitstandEmps)}`;
+  }
+  if(azubiEmps.length>0){
+    rightContent+=`<div class="sp-group-sep">Azubis / Berufsschule</div>${buildRowsRight(azubiEmps)}`;
+  }
+  if(!rightContent){
+    rightContent='<div style="padding:16px 12px;color:var(--text3);font-size:12px;">Keine Einträge</div>';
+  }
+
+  // Non-admin: check if freigegeben
+  if(!isAdm){
+    const f=getFreigabe(y,kw);
+    if(!f){
+      document.getElementById('sp-container').innerHTML=`
+        <div style="text-align:center;padding:60px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);">
+          <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+          <div style="font-size:16px;font-weight:600;color:var(--text);">${kwLabel(y,kw)}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:6px;">Dieser Schichtplan wurde noch nicht freigegeben.</div>
+        </div>`;
+      return;
+    }
+  }
+  document.getElementById('sp-container').innerHTML=`
+    <div class="sp-outer">
+      <div class="sp-header">
+        <h3>Schichtplan ${kwLabel(y,kw)}</h3>
+        <div class="sp-date-badge">${dateStr}</div>
+      </div>
+      <div class="sp-body">
+        <div class="sp-col" style="flex:1;">
+          ${colHdr}
+          ${buildRows(mainEmps)||'<div style="padding:16px 12px;color:var(--text3);font-size:12px;">Keine Mitarbeiter</div>'}
+          ${azubiEmps.length?`<div class="sp-group-sep">Azubis / Berufsschule — ${azubiEmps.length}</div>${buildRows(azubiEmps)}`:''}
+        </div>
+      </div>
+      <div class="sp-footer" style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;">
+        <div style="font-size:11px;font-weight:500;opacity:0.7;">${getFreigabeLabel(y,kw)}</div>
+        <div style="font-size:20px;font-weight:700;">${dateStr.replace('—','–')}</div>
+      </div>
+      </div>
+    </div>`;
+}
+
+function inlineShift(uid,key,val){
+  const cur=getEntry(uid,key);
+  const parts=key.split('-W');const y=parseInt(parts[0]),kw=parseInt(parts[1]);
+  const mon=mondayOf(y,kw),sun=sundayOf(y,kw);
+  const monISO=dateISO(mon);
+  // Always remove any full-KW urlaub for this uid+KW first
+  urlaube=urlaube.filter(u2=>!(u2.uid===uid&&u2.fromDate===monISO&&u2.toDate===dateISO(sun)));
+  if(val==='U'){
+    // Add fresh full-KW urlaub — mark as fromDropdown so always treated as full
+    const newU={id:nextUrlaubId++,uid,fromDate:monISO,toDate:dateISO(sun),fromDropdown:true};
+    urlaube.push(newU);
+    dbSaveUrlaub(newU);
+  } else {
+    // Remove any DB urlaub for this KW
+    dbGet('urlaube','user_id=eq.'+uid+'&from_date=eq.'+monISO).then(rows=>{
+      if(rows&&rows.length)rows.forEach(r=>dbDelete('urlaube','id=eq.'+r.id));
+    });
+    setEntry(uid,key,val,cur.comment);
+    dbSaveShift(uid, key, val, getEntry(uid,key).comment);
+  }
+  renderUrlaubList();
+  renderShiftTable();renderDashboard();
+}
+function inlineType(uid,val,rerender){const u=users.find(x=>x.id===uid);if(!u)return;u.type=val;if(val==='azubi')u.allowedShifts=schichten.filter(s=>s.azubi).map(s=>s.id);if(rerender){renderShiftTable();renderDashboard();}}
+function inlineComment(uid,key,val){const cur=getEntry(uid,key);setEntry(uid,key,cur.shift,val);dbSaveShift(uid,key,cur.shift||'-',val);}
+function inlineAbt(uid,val){const u=users.find(x=>x.id===uid);if(u){u.abts=[val];u.type=primaryType([val]);}}
+function autoFill(){
+  if(!confirm('Auto-Plan für diese KW? Urlaube/Krankmeldungen bleiben. Fortfahren?'))return;
+  const{y,kw}=curOff(),key=kwKey(y,kw);
+  // Calculate targets from autoplanSettings per Standort
+  const avail=getActiveEmps().filter(u=>!getAbsenceInKW(u.id,y,kw));
+  const _ap=apSet(currentStandort);
+  const tFrueh=Math.round(avail.length*_ap.frueh/100);
+  const tSpaet=Math.round(avail.length*_ap.spaet/100);
+  const tNacht=Math.round(avail.length*_ap.nacht/100);
+  let cFrueh=0,cSpaet=0,cNacht=0;
+  // Sort: azubis last, then by name
+  const sorted=[...avail].sort((a,b)=>{
+    if(a.type==='azubi'&&b.type!=='azubi')return 1;
+    if(b.type==='azubi'&&a.type!=='azubi')return -1;
+    return a.name.localeCompare(b.name,'de');
+  });
+  // Determine active night group for this KW
+  const activeNG=activeNightGroup(y,kw);
+  const nightGroupUids=activeNG?activeNG.userIds:[];
+
+  sorted.forEach((u,idx)=>{
+    const cur=getEntry(u.id,key);
+    const al=(u.allowedShifts||[]).filter(id=>u.type==='azubi'?sByID(id)?.azubi:true);
+    if(!al.length){setEntry(u.id,key,'-',cur.comment);return;}
+    const fr=al.filter(id=>sByID(id)?.type==='frueh');
+    const sp=al.filter(id=>sByID(id)?.type==='spaet');
+    const na=al.filter(id=>sByID(id)?.type==='nacht');
+    // Night group members get priority for Nachtschicht
+    const isNightGroupMember=nightGroupUids.includes(u.id);
+    let pick=null;
+    if(isNightGroupMember&&na.length&&cNacht<tNacht){pick=na[0];cNacht++;}
+    else if(fr.length&&cFrueh<tFrueh)pick=fr[0],cFrueh++;
+    else if(sp.length&&cSpaet<tSpaet)pick=sp[0],cSpaet++;
+    else if(na.length&&cNacht<tNacht)pick=na[0],cNacht++;
+    else if(fr.length&&sp.length)pick=(idx%2===0?fr:sp)[0];
+    else if(fr.length)pick=fr[0];else if(sp.length)pick=sp[0];else pick=al[0];
+    if(pick){
+      setEntry(u.id,key,pick,cur.comment||'');
+      dbSaveShift(u.id,key,pick,cur.comment||'');
+    }
+  });
+  // Force save all to DB, then re-render
+  renderShiftTable();renderDashboard();
+  saveAllShiftsToDB().then(n=>{
+    showToast('✓ Auto-Plan: '+n+' Schichten gespeichert');
+  });
+}
+
+// ══════════════════════════════════════
+// MEIN PLAN
+// ══════════════════════════════════════
+function renderMeinPlan(){
+  const u=currentUser;
+  document.getElementById('mp-sub').textContent=u.name+' · '+typeLabel(u.type);
+  const{y,kw}=curKW(),key=kwKey(y,kw);
+  // Check freigabe for current KW
+  if(getFreigabe(y,kw)===null){
+    document.getElementById('my-cur').innerHTML=`
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:28px;margin-bottom:10px;">🔒</div>
+        <div style="font-size:15px;font-weight:600;">Noch nicht freigegeben</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px;">${kwLabel(y,kw)} — Dein Vorgesetzter hat diesen Plan noch nicht freigegeben.</div>
+      </div>`;
+  } else {
+  const abs=getAbsenceInKW(u.id,y,kw),sh=getShiftForKW(u.id,y,kw),s=sByID(sh);
+  const isFullAbs0=abs&&!(abs.type==='urlaub'&&abs.partial);
+  const partialNote=abs?.partial?abs.partialLabel:null;
+  const color=isFullAbs0?(abs.type==='krank'?'#dc2626':'#d97706'):(s?'#1c2030':'#9aa3b5');
+  const name=isFullAbs0?(abs.type==='krank'?'Krank':'Urlaub'):(s?s.name:'Frei');
+  const time0=isFullAbs0?'—':(s?s.start+' – '+s.end:'—');
+  const comment=getEntry(u.id,key).comment;
+  document.getElementById('my-cur').innerHTML=`<div class="my-big">
+    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">${kwLabel(y,kw)} — diese Woche</div>
+    <div style="font-size:34px;font-weight:700;color:${color};margin-bottom:4px;">${name}</div>
+    <div style="font-size:16px;color:var(--text2);font-family:'DM Mono',monospace;">${time0}</div>
+    ${partialNote?`<div style="font-size:13px;color:#d97706;margin-top:8px;font-style:italic;">📅 ${partialNote}</div>`:''}
+    ${comment?`<div style="font-size:13px;color:#d97706;margin-top:8px;font-style:italic;">📌 ${comment}</div>`:''}
+    <div style="font-size:12px;color:var(--text3);margin-top:8px;">${kwRange(y,kw)}</div>
+  </div>`;
+  } // end freigabe check
+  let html='<thead><tr style="background:var(--bg3);"><th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">KW</th><th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Zeitraum</th><th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Status</th><th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Uhrzeit</th></tr></thead><tbody>';
+  for(let d=-2;d<8;d++){
+    const{y:yr,kw:w}=addDelta(y,kw,d);const k=kwKey(yr,w);
+    const a=getAbsenceInKW(u.id,yr,w),sh2=getShiftForKW(u.id,yr,w),sc=sByID(sh2);
+    const hasEntry=!!((shifts[u.id]||{})[k]);
+    const isCur=k===key;
+    const isFullAbsMP=a&&!(a.type==='urlaub'&&a.partial);
+    const pNote=a?.partial?a.partialLabel:null;
+    const isAdmH=currentUser.role==='admin';
+    const freigabeOk=isAdmH||getFreigabe(yr,w)!==null;
+    const statusTxt=!freigabeOk?'🔒':isFullAbsMP?(a.type==='krank'?'Krank':'Urlaub'):(!hasEntry?'—':(sc?sc.name+(pNote?' ('+pNote+')':''):'Frei'));
+    const timeTxt=!freigabeOk?'':isFullAbsMP?'—':(!hasEntry?'—':(sc?sc.start:'—'));
+    const statusColor=!freigabeOk?'color:var(--text3);':(!hasEntry&&!a)?'color:var(--text3);font-style:italic;':'font-weight:600;';
+    const rowBg=isCur?'background:#fff7ed;':'';
+    const rc=a?(a.type==='krank'?'row-krank':'row-urlaub'):(!sh2||sh2==='-'?'':'');
+    html+=`<tr class="${rc}" style="${rowBg}border-bottom:1px solid var(--border);">
+      <td style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:12px;${isCur?'color:var(--orange-hdr);font-weight:700;':''}">${kwLabel(yr,w)}</td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text2);">${kwRange(yr,w)}</td>
+      <td style="padding:8px 12px;${statusColor}">${statusTxt}</td>
+      <td style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">${timeTxt}</td>
+    </tr>`;
+  }
+  html+='</tbody>';
+  document.getElementById('my-table').innerHTML=html;
+}
+
+// ══════════════════════════════════════
+// KRANKMELDUNG
+// ══════════════════════════════════════
+function saveKrankmeldung(){
+  const uid=parseInt(document.getElementById('km-emp').value),from=document.getElementById('km-from').value,to=document.getElementById('km-to').value;
+  if(!from||!to){alert('Bitte alle Felder ausfüllen.');return;}
+  if(from>to){alert('Von-Datum muss vor Bis-Datum liegen.');return;}
+  const ex=krankmeldungen.find(k=>k.uid===uid&&k.fromDate===from);
+  if(ex){ex.toDate=to;ex.offen=false;}
+  else krankmeldungen.push({id:nextKrankId++,uid,fromDate:from,toDate:to,offen:false});
+  document.getElementById('km-from').value='';
+  document.getElementById('km-to').value='';
+  document.getElementById('km-emp').selectedIndex=0;
+  renderKranklist();renderShiftTable();renderDashboard();
+  showToast('✓ Krankmeldung eingetragen');
+  const lastK=krankmeldungen[krankmeldungen.length-1];
+  if(lastK)dbSaveKrank(lastK);
+}
+function verlängerKrank(id){
+  const k=krankmeldungen.find(x=>x.id===id);if(!k)return;
+  // Show inline date input
+  const btn=document.getElementById('verlaenger-btn-'+id);
+  if(!btn)return;
+  const wrap=btn.parentElement;
+  wrap.innerHTML=`<input type="date" id="vd-${id}" value="${k.toDate||''}" min="${k.fromDate}" style="background:var(--bg3);border:1px solid var(--accent);border-radius:6px;color:var(--text);font-size:12px;padding:3px 7px;">
+    <button class="btn-sm" style="color:var(--green);" onclick="confirmVerlaenger(${id})">✓</button>
+    <button class="btn-sm" onclick="renderKranklist()">✕</button>`;
+}
+function confirmVerlaenger(id){
+  const k=krankmeldungen.find(x=>x.id===id);if(!k)return;
+  const val=document.getElementById('vd-'+id)?.value;
+  if(!val||val<k.fromDate){showToast('Ungültiges Datum');return;}
+  k.toDate=val;k.offen=false;
+  renderKranklist();renderShiftTable();renderDashboard();
+  showToast('✓ Enddatum aktualisiert');
+}
+function deleteKrank(id){if(!confirm('Krankmeldung löschen?'))return;dbDeleteKrank(id);krankmeldungen=krankmeldungen.filter(k=>k.id!==id);renderKranklist();renderShiftTable();renderDashboard();}
+function renderKranklist(){
+  const list=document.getElementById('krank-list');if(!list)return;
+  if(!krankmeldungen.length){list.innerHTML='<div style="padding:14px 13px;color:var(--text3);font-size:13px;">Keine Krankmeldungen.</div>';return;}
+  list.innerHTML=[...krankmeldungen].sort((a,b)=>{const na=users.find(u=>u.id===a.uid)?.name||'';const nb=users.find(u=>u.id===b.uid)?.name||'';return na.localeCompare(nb,'de');}).map(k=>{
+    const u=users.find(x=>x.id===k.uid);
+    const from=parseDate(k.fromDate),to=parseDate(k.toDate);
+    return`<div class="krank-row">
+      <div style="font-weight:600;">${u?.name||'?'}${k.offen?'<span style="font-size:10px;color:#d97706;font-weight:700;margin-left:6px;">OFFEN</span>':''}</div>
+      <div>${fmtDate(k.fromDate)}</div><div>${k.toDate?fmtDate(k.toDate):'<span style="color:#d97706;font-size:11px;">noch offen</span>'}</div>
+      <div style="font-size:11px;color:var(--text2);">${kwLabel(isoYear(from),isoWeek(from))}</div>
+      <div style="font-size:11px;color:var(--text2);">${kwLabel(isoYear(to),isoWeek(to))}</div>
+      <div style="display:flex;gap:5px;">
+        <button class="btn-sm" id="verlaenger-btn-${k.id}" onclick="verlängerKrank(${k.id})" title="Enddatum ändern">↷</button>
+        <button class="btn-sm btn-danger" onclick="deleteKrank(${k.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// URLAUB
+// ══════════════════════════════════════
+function addUrlaub(){
+  const uid=parseInt(document.getElementById('ul-emp').value),from=document.getElementById('ul-from').value,to=document.getElementById('ul-to').value;
+  if(!from||!to){alert('Von und Bis angeben.');return;}if(from>to){alert('Von vor Bis.');return;}
+  const newU={id:nextUrlaubId++,uid,fromDate:from,toDate:to};urlaube.push(newU);dbSaveUrlaub(newU);renderUrlaubList();renderShiftTable();renderDashboard();
+}
+function deleteUrlaub(id){if(!confirm('Urlaub löschen?'))return;dbDeleteUrlaub(id);urlaube=urlaube.filter(u=>u.id!==id);renderUrlaubList();renderShiftTable();renderDashboard();}
+function importUrlaub(){
+  const raw=document.getElementById('ul-paste').value.trim();if(!raw){alert('Kein Text.');return;}
+  let added=0,errs=[];
+  raw.split('\n').filter(l=>l.trim()).forEach((line,i)=>{
+    const parts=line.split('\t').map(s=>s.trim());if(parts.length<3){errs.push(`Z${i+1}: Spalten fehlen`);return;}
+    const[name,fromS,toS]=parts;
+    const u=users.find(x=>x.name.toLowerCase()===name.toLowerCase()&&x.role==='employee');
+    if(!u){errs.push(`Z${i+1}: "${name}" nicht gefunden`);return;}
+    function parseDMY(s){const p=s.split('.');if(p.length===3)return`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;return s;}
+    urlaube.push({id:nextUrlaubId++,uid:u.id,fromDate:parseDMY(fromS),toDate:parseDMY(toS)});added++;
+  });
+  document.getElementById('ul-paste').value='';renderUrlaubList();renderShiftTable();renderDashboard();
+  alert(`${added} Urlaub(e) importiert.${errs.length?'\n\nFehler:\n'+errs.join('\n'):''}`);
+}
+function renderUrlaubList(){
+  const list=document.getElementById('urlaub-list');if(!list)return;
+  if(!urlaube.length){list.innerHTML='<div style="padding:14px 13px;color:var(--text3);font-size:13px;">Kein Urlaub eingetragen.</div>';return;}
+  const sorted=[...urlaube].sort((a,b)=>{const na=users.find(u=>u.id===a.uid)?.name||'';const nb=users.find(u=>u.id===b.uid)?.name||'';return na.localeCompare(nb,'de');});
+  list.innerHTML=sorted.map(u=>{
+    const emp=users.find(x=>x.id===u.uid);
+    const f=parseDate(u.fromDate),t=parseDate(u.toDate);
+    const fKW=kwLabel(isoYear(f),isoWeek(f)),tKW=kwLabel(isoYear(t),isoWeek(t));
+    return`<div class="ul-row">
+      <div style="font-weight:600;">${emp?.name||'?'}</div>
+      <div>${fmtDate(u.fromDate)}</div><div>${fmtDate(u.toDate)}</div>
+      <div style="font-size:11px;color:var(--text2);">${fKW===tKW?fKW:fKW+' – '+tKW}</div>
+      <div><button class="btn-sm btn-danger" onclick="deleteUrlaub(${u.id})">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// MITARBEITER
+// ══════════════════════════════════════
+function isHashed(pw){return typeof pw==='string'&&pw.length>=60&&/^[a-f0-9$./A-Za-z]+$/.test(pw);}
+function renderEmpList(){
+  const empList=[...getActiveEmps(true)];
+  const badge=document.getElementById('emp-count-badge');
+  if(badge)badge.textContent=empList.length+' Mitarbeiter';
+  document.getElementById('emp-list').innerHTML=empList.sort((a,b)=>a.name.localeCompare(b.name,'de')).map(u=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''" onclick="openEditEmp(${u.id})">
+      <div>
+        <div style="font-weight:600;font-size:13px;">${u.name}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);">${abtLabels(u.abts)}</div>
+      <div style="display:flex;gap:4px;">${typeBadge(u.type)}${u.role==='admin'?'<span class="badge" style="background:rgba(224,120,32,0.15);color:var(--orange-hdr);font-size:10px;">Admin</span>':''}</div><div style="font-size:11px;color:var(--text3);">${standorte.find(s=>s.id===u.standort)?.name||u.standort||'Köln'}</div>
+      <div style="display:flex;gap:5px;" onclick="event.stopPropagation()">
+        <button class="btn-sm" onclick="togglePwView(${u.id},this)" title="Passwort anzeigen" style="font-size:14px;padding:3px 8px;">👁</button>
+        <span id="pw-${u.id}" style="display:none;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);padding:2px 7px;border-radius:5px;">${isHashed(u.password)?'[verschlüsselt]':u.password}</span>
+        <button class="btn-sm" onclick="openEditEmp(${u.id})">✎</button>
+        <button class="btn-sm btn-danger" onclick="deleteEmp(${u.id})">✕</button>
+      </div>
+    </div>`).join('');
+}
+function buildShiftCBsInModal(al){
+  const el=document.getElementById('ep-shifts');
+  if(el) el.innerHTML=buildShiftCBs(al);
+}
+function buildShiftCBs(al){return schichten.map(s=>`<label class="cb-item"><input type="checkbox" class="ep-sh-cb" value="${s.id}" ${(al||[]).includes(s.id)?'checked':''}> ${s.name} ${s.start}</label>`).join('');}
+function onEmpRoleChange(){
+  const roleEl=document.getElementById('ep-role');
+  const wrapEl=document.getElementById('ep-admin-ndl-wrap');
+  if(!roleEl||!wrapEl)return;
+  wrapEl.classList.toggle('hidden',roleEl.value!=='admin');
+}
+function onEmpAbtChange(){
+  const checked=[...document.querySelectorAll('.ep-abt-cb:checked')].map(c=>c.value);
+  const isAzubi=checked.some(id=>abtFromId(id).type==='azubi');
+  document.getElementById('ep-shifts').innerHTML=isAzubi
+    ?schichten.filter(s=>s.azubi).map(s=>`<label class="cb-item"><input type="checkbox" class="ep-sh-cb" value="${s.id}" checked> ${s.name} ${s.start}</label>`).join('')
+    :buildShiftCBs(schichten.map(s=>s.id));
+}
+// attach listener after DOM ready via delegation
+function togglePhoneField(){
+  const on=document.getElementById('ep-sms-toggle').checked;
+  document.getElementById('ep-phone-wrap').classList.toggle('hidden',!on);
+}
+function buildAbtCheckboxes(selArr){
+  const el=document.getElementById('ep-abt-group');
+  if(!el)return;
+  el.innerHTML=ABTEILUNGEN.map(a=>`<label class="cb-item"><input type="checkbox" class="ep-abt-cb" value="${a.id}" ${(selArr||[]).includes(a.id)?'checked':''}> ${a.label}</label>`).join('');
+}
+function openAddEmp(){
+  editEmpId=null;
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  const setChk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=v;};
+  const addHidden=(id)=>{const el=document.getElementById(id);if(el)el.classList.add('hidden');};
+  document.getElementById('modal-emp-title').textContent='Mitarbeiter hinzufügen';
+  ['ep-name','ep-user','ep-pass','ep-email'].forEach(id=>setVal(id,''));
+  setVal('ep-standort', currentStandort);
+  setVal('ep-role','employee');
+  addHidden('ep-admin-ndl-wrap');
+  const phint=document.getElementById('ep-pass-hint');if(phint)phint.style.display='none';
+  const pold=document.getElementById('ep-pass-old');if(pold)pold.value='';
+  setChk('ep-sms-toggle',false);
+  addHidden('ep-phone-wrap');
+  setVal('ep-phone','');
+  buildAbtCheckboxes([]);
+  buildShiftCBsInModal(schichten.map(s=>s.id));
+  document.getElementById('modal-emp').classList.remove('hidden');
+}
+
+function openEditEmp(id){
+  editEmpId=id;
+  const u=users.find(x=>x.id===id);
+  if(!u)return;
+  const setVal=(eid,v)=>{const el=document.getElementById(eid);if(el)el.value=v;};
+  const setChk=(eid,v)=>{const el=document.getElementById(eid);if(el)el.checked=v;};
+  document.getElementById('modal-emp-title').textContent='Mitarbeiter bearbeiten';
+  setVal('ep-name',u.name);
+  setVal('ep-user',u.username);
+  setVal('ep-pass','');  // Don't show hash, user must re-enter to change
+  const oldHash=document.getElementById('ep-pass-old');if(oldHash)oldHash.value=u.password||'';
+  const phint2=document.getElementById('ep-pass-hint');if(phint2)phint2.style.display='';
+  setVal('ep-email',u.email||'');
+  setVal('ep-standort',u.standort||'koeln');
+  setVal('ep-role',u.role||'employee');
+  const ndlWrap=document.getElementById('ep-admin-ndl-wrap');
+  if(ndlWrap) ndlWrap.classList.toggle('hidden',u.role!=='admin');
+  document.querySelectorAll('.ep-ndl-cb').forEach(cb=>{
+    cb.checked=(u.standorte||['koeln']).includes(cb.value);
+  });
+  setChk('ep-sms-toggle',!!u.sms);
+  const phoneWrap=document.getElementById('ep-phone-wrap');
+  if(phoneWrap) phoneWrap.classList.toggle('hidden',!u.sms);
+  setVal('ep-phone',u.phone||'');
+  buildAbtCheckboxes(u.abts||[]);
+  buildShiftCBsInModal(u.allowedShifts||[]);
+  document.getElementById('modal-emp').classList.remove('hidden');
+}
+
+function saveEmp(){
+  const name=document.getElementById('ep-name').value.trim();
+  const username=document.getElementById('ep-user').value.trim();
+  const password=document.getElementById('ep-pass').value;
+  const email=document.getElementById('ep-email').value.trim();
+  const allowedShifts=[...document.querySelectorAll('.ep-sh-cb:checked')].map(c=>c.value);
+  const abts=[...document.querySelectorAll('.ep-abt-cb:checked')].map(c=>c.value);
+  const type=primaryType(abts);
+  const sms=document.getElementById('ep-sms-toggle')?.checked||false;
+  const phone=document.getElementById('ep-phone')?.value.trim()||'';
+  const standort=document.getElementById('ep-standort')?.value||currentStandort;
+  const role=document.getElementById('ep-role')?.value||'employee';
+  const ndls=[...document.querySelectorAll('.ep-ndl-cb:checked')].map(c=>c.value);
+  const standorteList=role==='admin'?(ndls.length?ndls:['koeln']):undefined;
+
+  if(!name||!username||(!password&&!editEmpId)){alert('Bitte Name, Benutzername und Passwort ausfüllen.');return;}
+
+  // Check username unique
+  const existingUser=users.find(u=>u.username===username&&u.id!==editEmpId);
+  if(existingUser){alert('Benutzername bereits vergeben.');return;}
+
+  const oldPwVal=document.getElementById('ep-pass-old')?.value||'';
+  const finalPw=password.length>0?password:oldPwVal;
+  const empData={name,username,password:finalPw,email,role,type,abts,phone,sms,standort,
+    ...(standorteList?{standorte:standorteList}:{standorte:[standort]}),allowedShifts};
+  if(editEmpId){
+    const u=users.find(x=>x.id===editEmpId);
+    if(!u){alert('Mitarbeiter nicht gefunden.');return;}
+    Object.assign(u,empData);
+    dbSaveUser(u).then(()=>{
+      showToast('✓ Mitarbeiter gespeichert');
+      closeM('modal-emp');renderEmpList();renderNotifEmps();populateSels();playSound('save');
+    }).catch(e=>alert('Fehler: '+e.message));
+  } else {
+    const newU={id:-1,...empData};
+    dbSaveUser(newU).then(()=>{
+      users.push(newU);
+      showToast('✓ Mitarbeiter hinzugefügt');
+      closeM('modal-emp');renderEmpList();renderNotifEmps();populateSels();playSound('save');
+    }).catch(e=>alert('Fehler: '+e.message));
+  }
+}
+function deleteEmp(id){if(!confirm('Löschen?'))return;dbDeleteUser(id);users=users.filter(u=>u.id!==id);renderEmpList();renderNotifEmps();populateSels();}
+
+// ══════════════════════════════════════
+// SCHICHTEN
+// ══════════════════════════════════════
+function renderSchichtList(){const tm={frueh:'Früh',spaet:'Spät',nacht:'Nacht'};document.getElementById('sch-list').innerHTML=schichten.map(s=>`<div class="sr"><div><span style="width:12px;height:12px;border-radius:2px;background:${s.rowClass==='row-nacht'?'#222':s.rowClass==='row-spaet'?'#5a8040':s.rowClass==='row-tag'?'#2a7a4a':'#1a6a9a'};display:inline-block;"></span></div><div style="font-weight:600;">${s.name} ${s.start}</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">${s.start} – ${s.end}</div><div><span class="badge bg-gray">${tm[s.type]}</span></div><div>${s.azubi?'<span class="badge bg-green">✓</span>':'<span style="color:var(--text3);">—</span>'}</div><div style="display:flex;gap:5px;"><button class="btn-sm" onclick="openEditSchicht('${s.id}')">✎</button><button class="btn-sm btn-danger" onclick="deleteSchicht('${s.id}')">✕</button></div></div>`).join('');}
+function openAddSchicht(){editSchId=null;document.getElementById('ms-title').textContent='Schicht hinzufügen';document.getElementById('sch-name').value='';document.getElementById('sch-start').value='06:00';document.getElementById('sch-end').value='14:00';document.getElementById('sch-type').value='frueh';document.getElementById('sch-color').value='#c6e2f5';document.getElementById('sch-azubi').checked=false;document.getElementById('modal-schicht').classList.remove('hidden');}
+function openEditSchicht(id){editSchId=id;const s=schichten.find(x=>x.id===id);document.getElementById('ms-title').textContent='Schicht bearbeiten';document.getElementById('sch-name').value=s.name;document.getElementById('sch-start').value=s.start;document.getElementById('sch-end').value=s.end;document.getElementById('sch-type').value=s.type;document.getElementById('sch-color').value='#c6e2f5';document.getElementById('sch-azubi').checked=s.azubi;document.getElementById('modal-schicht').classList.remove('hidden');}
+function saveSchicht(){
+  const name=document.getElementById('sch-name').value.trim(),start=document.getElementById('sch-start').value,end=document.getElementById('sch-end').value,type=document.getElementById('sch-type').value,azubi=document.getElementById('sch-azubi').checked;
+  if(!name||!start){alert('Name und Uhrzeit angeben.');return;}
+  const rowClass=type==='nacht'?'row-nacht':type==='spaet'?'row-spaet':name.toLowerCase().includes('tag')?'row-tag':'row-frueh';
+  if(editSchId){
+    const s=schichten.find(x=>x.id===editSchId);
+    Object.assign(s,{name,start,end,type,rowClass,azubi});
+    dbUpdate('schichten','id=eq.'+editSchId,{name,start_time:start,end_time:end,type,row_class:rowClass,azubi});
+  } else {
+    const newId='SCH'+nextSchId++;
+    schichten.push({id:newId,name,start,end,type,rowClass,azubi});
+    dbInsert('schichten',{id:newId,name,start_time:start,end_time:end,type,row_class:rowClass,azubi});
+  }
+  closeM('modal-schicht');renderSchichtList();
+}
+function deleteSchicht(id){if(!confirm('Schicht löschen?'))return;dbDelete('schichten','id=eq.'+id);schichten=schichten.filter(s=>s.id!==id);renderSchichtList();}
+
+// ═══════════════════════════════════════════════════════
+// ABTEILUNGEN
+// ═══════════════════════════════════════════════════════
+let editAbtId=null;
+function renderAbtList(){
+  const el=document.getElementById('abt-list');
+  if(!el)return;
+  if(!ABTEILUNGEN.length){el.innerHTML='<div style="padding:18px;color:var(--text3);text-align:center;">Keine Abteilungen vorhanden</div>';return;}
+  el.innerHTML=ABTEILUNGEN.map(a=>`<div class="sr" style="grid-template-columns:40px 1fr 80px 120px;">
+    <div style="width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);">${a.id||'–'}</div>
+    <div style="font-weight:600;">${a.label}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);">${a.id||'—'}</div>
+    <div style="display:flex;gap:5px;">
+      ${a.id===''?'<span style="font-size:11px;color:var(--text3);">Standard</span>':`<button class="btn-sm" onclick="openEditAbt('${a.id}')">✎</button><button class="btn-sm btn-danger" onclick="deleteAbt('${a.id}')">✕</button>`}
+    </div>
+  </div>`).join('');
+}
+function openAddAbt(){editAbtId=null;document.getElementById('ma-title').textContent='Abteilung hinzufügen';document.getElementById('abt-name').value='';document.getElementById('abt-id').value='';document.getElementById('abt-id').readOnly=false;document.getElementById('modal-abteilung').classList.remove('hidden');}
+function openEditAbt(id){editAbtId=id;const a=ABTEILUNGEN.find(x=>x.id===id);document.getElementById('ma-title').textContent='Abteilung bearbeiten';document.getElementById('abt-name').value=a.label;document.getElementById('abt-id').value=a.id;document.getElementById('abt-id').readOnly=true;document.getElementById('modal-abteilung').classList.remove('hidden');}
+function saveAbt(){
+  const name=document.getElementById('abt-name').value.trim();
+  const id=document.getElementById('abt-id').value.trim().toUpperCase();
+  if(!name||!id){alert('Bitte Bezeichnung und Kürzel eingeben.');return;}
+  if(!editAbtId){
+    if(ABTEILUNGEN.find(a=>a.id===id)){alert('Kürzel bereits vergeben!');return;}
+    ABTEILUNGEN.push({id,label:name,type:'lager'});
+  } else {
+    const a=ABTEILUNGEN.find(x=>x.id===editAbtId);
+    if(a)a.label=name;
+  }
+  closeM('modal-abteilung');renderAbtList();
+  // Mitarbeiter-Dropdowns aktualisieren falls offen
+  const empPage=document.getElementById('page-mitarbeiter');
+  if(empPage&&empPage.classList.contains('active'))renderEmpList();
+}
+function deleteAbt(id){
+  if(!confirm('Abteilung löschen? Mitarbeiter behalten ihre Zuweisung, sehen aber nur noch das Kürzel.'))return;
+  const idx=ABTEILUNGEN.findIndex(a=>a.id===id);
+  if(idx>-1)ABTEILUNGEN.splice(idx,1);
+  renderAbtList();
+}
+
+
+// ══════════════════════════════════════
+// BENACHRICHTIGUNGEN
+// ══════════════════════════════════════
+function renderNotifEmps(){const g=document.getElementById('notif-emps');if(!g)return;const sorted=[...getActiveEmps()].sort((a,b)=>a.name.localeCompare(b.name,'de'));g.innerHTML=`<label class="cb-item"><input type="checkbox" value="all" onchange="togAll(this)"> <strong>Alle</strong></label>`+sorted.map(u=>`<label class="cb-item"><input type="checkbox" class="ne-cb" value="${u.id}"> ${u.name}</label>`).join('');}
+function togAll(cb){document.querySelectorAll('.ne-cb').forEach(c=>c.checked=cb.checked);}
+function renderNotifHistory(){const h=document.getElementById('notif-history');if(!h)return;h.innerHTML=notifLog.slice().reverse().map(n=>`<div class="nr"><div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:${n.bg};color:${n.ic};flex-shrink:0;border:1px solid var(--border);">✉</div><div><div style="font-size:13px;font-weight:600;">${n.subject}</div><div style="font-size:12px;color:var(--text2);">An: ${n.to}</div></div><div style="font-size:11px;color:var(--text3);margin-left:auto;">${n.time}</div></div>`).join('');}
+function sendNotif(){const chk=[...document.querySelectorAll('.ne-cb:checked')],all=document.querySelector('#notif-emps input[value="all"]')?.checked,s=document.getElementById('notif-subject').value.trim(),b=document.getElementById('notif-body').value.trim();if(!s||!b){alert('Betreff und Nachricht.');return;}if(!all&&!chk.length){alert('Empfänger wählen.');return;}const names=all?'Alle':chk.map(c=>users.find(u=>u.id===parseInt(c.value))?.name).join(', ');const emails=all?users.filter(u=>u.role==='employee').map(u=>u.email):chk.map(c=>users.find(u=>u.id===parseInt(c.value))?.email).filter(Boolean);window.location.href=`mailto:${emails.join(',')}?subject=${encodeURIComponent(s)}&body=${encodeURIComponent(b)}`;notifLog.push({to:names,subject:s,time:'gerade eben',bg:'#f0fdf4',ic:'#16a34a'});renderNotifHistory();document.getElementById('notif-subject').value='';document.getElementById('notif-body').value='';}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function closeM(id){document.getElementById(id).classList.add('hidden');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mbg:not(.hidden)').forEach(m=>m.classList.add('hidden'));});
+document.getElementById('lu').addEventListener('keydown',e=>e.key==='Enter'&&document.getElementById('lp').focus());
+document.getElementById('lp').addEventListener('keydown',e=>e.key==='Enter'&&doLogin());
+// DB is loaded after login — initShifts called from loadAllData
+// Apply stored theme
+(function(){const c=localStorage.getItem('accentColor');if(c)document.documentElement.style.setProperty('--orange-hdr',c);})();
+
+// ══════════════════════════════════════
+// SOUNDS (subtle, login only)
+// ══════════════════════════════════════
+let soundsEnabled=true;
+function playSound(type){
+  if(!soundsEnabled)return;
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    if(type==='login'){
+      o.frequency.setValueAtTime(520,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(780,ctx.currentTime+0.12);
+      g.gain.setValueAtTime(0.06,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.25);
+      o.start();o.stop(ctx.currentTime+0.25);
+    } else if(type==='save'){
+      o.frequency.setValueAtTime(440,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(550,ctx.currentTime+0.08);
+      g.gain.setValueAtTime(0.05,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.18);
+      o.start();o.stop(ctx.currentTime+0.18);
+    } else if(type==='nav'){
+      o.frequency.setValueAtTime(330,ctx.currentTime);
+      g.gain.setValueAtTime(0.03,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.1);
+      o.start();o.stop(ctx.currentTime+0.1);
+    }
+  }catch(e){}
+}
+function toggleSounds(on){soundsEnabled=on;}
+
+// ══════════════════════════════════════
+// MOBILE SIDEBAR
+// ══════════════════════════════════════
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+// Close sidebar when nav item clicked on mobile
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=768)closeSidebar();
+  });
+});
+
+
+
+
+// ══════════════════════════════════════
+// PROFIL
+// ══════════════════════════════════════
+function renderProfil(){
+  const u=currentUser;
+  document.getElementById('profil-sub').textContent=u.name+' · '+(u.role==='admin'?'Administrator':'Mitarbeiter');
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  const setChk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+  setVal('prf-name',u.name);
+  setVal('prf-user',u.username);
+  setVal('prf-email',u.email);
+  setVal('prf-phone',u.phone);
+  setChk('prf-sms',u.sms);
+  // Clear password fields
+  ['prf-pw-old','prf-pw-new','prf-pw-new2'].forEach(id=>setVal(id,''));
+}
+
+function saveProfilData(){
+  const email=document.getElementById('prf-email').value.trim();
+  const phone=document.getElementById('prf-phone').value.trim();
+  const sms=document.getElementById('prf-sms').checked;
+  currentUser.email=email;
+  currentUser.phone=phone;
+  currentUser.sms=sms;
+  // Update in users array too
+  const u=users.find(x=>x.id===currentUser.id);
+  if(u){u.email=email;u.phone=phone;u.sms=sms;}
+  dbSaveUser(currentUser).then(()=>{
+    showToast('✓ Profil gespeichert');
+    playSound('save');
+  }).catch(e=>alert('Fehler: '+e.message));
+}
+
+function saveProfilPw(){
+  const old=document.getElementById('prf-pw-old').value;
+  const neu=document.getElementById('prf-pw-new').value;
+  const neu2=document.getElementById('prf-pw-new2').value;
+  if(!old||!neu||!neu2){showToast('Bitte alle Felder ausfüllen.');return;}
+  if(old!==currentUser.password){showToast('Aktuelles Passwort falsch.');return;}
+  if(neu!==neu2){showToast('Neue Passwörter stimmen nicht überein.');return;}
+  if(neu.length<4){showToast('Passwort muss mindestens 4 Zeichen haben.');return;}
+  currentUser.password=neu;
+  const u=users.find(x=>x.id===currentUser.id);
+  if(u)u.password=neu;
+  dbSaveUser(currentUser).then(()=>{
+    showToast('✓ Passwort geändert');
+    playSound('save');
+    ['prf-pw-old','prf-pw-new','prf-pw-new2'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.value='';
+    });
+  }).catch(e=>alert('Fehler: '+e.message));
+}
+
+function togglePwView(uid,btn){
+  const el=document.getElementById('pw-'+uid);
+  if(!el)return;
+  const show=el.style.display==='none';
+  el.style.display=show?'inline':'none';
+  btn.textContent=show?'🙈':'👁';
+}
+
+// ══════════════════════════════════════
+// FREIGABE
+// ══════════════════════════════════════
+function getFreigabeKey(y,kw){
+  // For employees use their own standort, for admins use currentStandort
+  const s=(currentUser&&currentUser.role==='admin')?currentStandort:(currentUser?.standort||currentStandort);
+  return kwKey(y,kw)+'_'+s;
+}
+function getFreigabeLabel(y,kw){const f=getFreigabe(y,kw);if(!f)return 'Noch nicht freigegeben';const d=parseDate(f.at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});return 'Freigegeben von '+f.name+' am '+d;}
+function getFreigabe(y,kw){return freigaben[getFreigabeKey(y,kw)]||null;}
+
+function updateFreigabeBtn(){
+  const btn=document.getElementById('freigabe-btn');
+  if(!btn)return;
+  const{y,kw}=curOff();
+  const f=getFreigabe(y,kw);
+  if(f){
+    btn.textContent='🔒 Freigegeben';
+    btn.style.cssText='font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;';
+  } else {
+    btn.textContent='✓ Freigeben';
+    btn.style.cssText='font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;background:rgba(52,201,125,0.1);color:#16a34a;border:1px solid rgba(52,201,125,0.3);';
+  }
+}
+
+function toggleFreigabe(){
+  const{y,kw}=curOff();
+  const key=getFreigabeKey(y,kw);
+  if(freigaben[key]){
+    if(!confirm('Freigabe zurückziehen? Mitarbeiter sehen den Plan dann nicht mehr.'))return;
+    delete freigaben[key];
+    showToast('Freigabe zurückgezogen');
+  } else {
+    freigaben[key]={by:currentUser.username,name:currentUser.name,at:new Date().toISOString().slice(0,10)};
+    showToast('✓ Schichtplan freigegeben');
+    playSound('save');
+  }
+  const fKey=getFreigabeKey(y,kw);
+  dbSaveFreigabe(kwKey(y,kw),currentStandort,freigaben[fKey]||null);
+  renderShiftTable();
+  showToast(freigaben[fKey]?'✓ Freigegeben':'Freigabe zurückgezogen');
+}
+
+
+// ══════════════════════════════════════
+// PRINT
+// ══════════════════════════════════════
+function printSchichtplan(){
+  const{y,kw}=curOff();
+  const key=kwKey(y,kw);
+  const emps=getActiveEmps();
+  const mainEmps2=emps.filter(u=>u.type!=='azubi');
+  const azubiEmps2=emps.filter(u=>u.type==='azubi');
+  const fri2=fridayOf(y,kw);
+  const dateStr2=mondayOf(y,kw).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' — '+fri2.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+  function buildPrintRow(u){
+    const abs=getAbsenceInKW(u.id,y,kw);
+    const isKrank=abs?.type==='krank';
+    const isFullUrlaub=abs&&!(abs.type==='urlaub'&&abs.partial);
+    const{shift,comment}=getEntry(u.id,key);
+    const sh=shift||'-';const s=sByID(sh);
+    const rowClass=isKrank?'row-krank':(isFullUrlaub?'row-urlaub':getRowClass(sh,null));
+    const schichtLabel=isFullUrlaub?'Urlaub':(s?s.name:'Frei');
+    const zeitLabel=isFullUrlaub?'':(s?s.start:'');
+    const abtDisplay=(u.abts||[]).map(id=>{const a=abtFromId(id);return a.label!=='Normal Lager'?a.label:''}).filter(Boolean).join('/');
+    const abtCell=isKrank?'<span style="color:#c00;font-weight:700;">Krank</span>':(abtDisplay||'');
+    let sonstiges=comment||'';
+    if(isKrank&&abs.endsInKW&&abs.resumesDate){const rd=parseDate(abs.resumesDate);sonstiges=(sonstiges?sonstiges+' · ':'')+'ab '+rd.toLocaleDateString('de-DE',{weekday:'short'})+' wieder'+(s?' '+s.name:'');}
+    if(abs?.partial&&abs.partialLabel)sonstiges=(sonstiges?sonstiges+' · ':'')+abs.partialLabel;
+    return`<div class="sp-row ${rowClass}"><div class="name">${u.name}</div><div>${schichtLabel}</div><div>${zeitLabel}</div><div>${abtCell}</div><div>${sonstiges}</div></div>`;
+  }
+
+  const rowsHtml=mainEmps2.sort((a,b)=>{const sa=shiftSortKey(getShiftForKW(a.id,y,kw)),sb=shiftSortKey(getShiftForKW(b.id,y,kw));return sa!==sb?sa-sb:a.name.localeCompare(b.name,'de');}).map(buildPrintRow).join('')
+    +(azubiEmps2.length?`<div class="sp-group-sep">Azubis / Berufsschule — ${azubiEmps2.length}</div>`+azubiEmps2.map(buildPrintRow).join(''):'');
+
+  const win=window.open('','_blank','width=1000,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="de"><head>
+    <meta charset="UTF-8"><title>Schichtplan ${kwLabel(y,kw)}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:Arial,sans-serif;font-size:11px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .sp-outer{border:1.5px solid #aaa;border-radius:5px;overflow:hidden;}
+      .sp-header{background:#e07820!important;color:#fff!important;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;}
+      .sp-header h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+      .sp-date-badge{background:rgba(0,0,0,.25);border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700;}
+      .sp-col-hdr{display:grid;grid-template-columns:140px 90px 56px 80px 1fr;background:#e07820!important;color:#fff!important;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1.5px solid #aaa;}
+      .sp-col-hdr div,.sp-row div{padding:5px 7px;border-right:1px solid rgba(0,0,0,.1);}
+      .sp-row{display:grid;grid-template-columns:140px 90px 56px 80px 1fr;border-bottom:1px solid rgba(0,0,0,.08);font-size:10px;}
+      .sp-row div:last-child{border-right:none;white-space:normal;}
+      .name{font-weight:600;}
+      .sp-group-sep{background:#e07820!important;color:#fff!important;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 7px;}
+      .row-frueh{background:#c6e2f5!important;}.row-tag{background:#d4edda!important;}.row-spaet{background:#cfe8c8!important;}
+      .row-nacht{background:#2d2d3a!important;color:#e8e8f0!important;}.row-urlaub{background:#e0e0e0!important;}.row-krank{background:#ffd0d0!important;}
+      .sp-footer{background:#e07820!important;color:#fff!important;text-align:right;padding:6px 12px;font-size:17px;font-weight:700;border-top:1.5px solid #aaa;}
+      @media print{body{margin:0;}@page{margin:10mm;size:A4 landscape;}}
+    </style>
+  </head><body>
+    <div class="sp-outer">
+      <div class="sp-header"><h3>Schichtplan ${kwLabel(y,kw)}</h3><div class="sp-date-badge">${dateStr2}</div></div>
+      <div class="sp-col-hdr"><div>Namen</div><div>Schichten</div><div>Zeiten</div><div>Abteilung</div><div>Sonstiges</div></div>
+      ${rowsHtml}
+      <div class="sp-footer">${dateStr2.replace('—','–')}</div>
+    </div>
+  </body></html>`);
+  setTimeout(()=>{win.focus();win.print();},600);
+  win.document.close();
+}
+
+
+function loadAdminNDLCheckboxes(){
+  const myNDLs=currentUser.standorte||['koeln'];
+  ['koeln','dortmund'].forEach(id=>{
+    const cb=document.getElementById('ndl-'+id);
+    if(cb)cb.checked=myNDLs.includes(id);
+  });
+}
+function saveAdminNDL(){
+  const selected=[];
+  ['koeln','dortmund'].forEach(id=>{
+    const cb=document.getElementById('ndl-'+id);
+    if(cb&&cb.checked)selected.push(id);
+  });
+  if(!selected.length){alert('Mindestens eine Niederlassung muss ausgewählt sein.');loadAdminNDLCheckboxes();return;}
+  currentUser.standorte=selected;
+  if(!selected.includes(currentStandort)){currentStandort=selected[0];switchStandort(currentStandort);}
+  renderNDLSelector();
+  showToast('✓ Niederlassungen gespeichert');
+}
+
+
+// ══════════════════════════════════════
+// STANDORTE
+// ══════════════════════════════════════
+function getActiveEmps(includeAdmins=true){
+  // Returns employees for current standort (admin sees selected, employee sees own)
+  if(currentUser.role==='admin'){
+    return users.filter(u=>(includeAdmins||u.role==='employee')&&(u.standort===currentStandort||(u.standorte||[]).includes(currentStandort)));
+  }
+  return users.filter(u=>u.role==='employee'&&u.standort===currentUser.standort);
+}
+
+function renderNDLSelector(){
+  const sel=document.getElementById('ndl-select');
+  if(!sel)return;
+  const myStandorte=currentUser.standorte||[currentUser.standort||'koeln'];
+  sel.innerHTML=myStandorte.map(sid=>{
+    const s=standorte.find(x=>x.id===sid)||{id:sid,name:sid};
+    return`<option value="${s.id}" ${s.id===currentStandort?'selected':''}>${s.name}</option>`;
+  }).join('');
+  // Hide if only one location
+  document.getElementById('ndl-selector-wrap').style.display=myStandorte.length>1?'block':'none';
+}
+
+function switchStandort(val){
+  currentStandort=val;
+  renderDashboard();
+  renderShiftTable();
+  renderEmpList();
+  populateSels();
+  renderNotifEmps();
+  // Refresh absence pages if open
+  if(document.getElementById('page-urlaub')?.classList.contains('active'))renderUrlaubList();
+  if(document.getElementById('page-krankmeldung')?.classList.contains('active'))renderKranklist();
+  if(document.getElementById('page-mitarbeiter')?.classList.contains('active'))renderEmpList();
+  if(document.getElementById('page-history')?.classList.contains('active'))renderHistory();
+  showToast('Standort: '+(standorte.find(s=>s.id===val)?.name||val));
+}
+
+
+// ══════════════════════════════════════
+// NACHTGRUPPEN
+// ══════════════════════════════════════
+function hasNachtschicht(u){
+  // Checks if user has any nacht-type shift in their allowedShifts
+  return (u.allowedShifts||[]).some(sid=>schichten.find(s=>s.id===sid&&s.type==='nacht'));
+}
+function isLeitstand(u){
+  return u.type==='leitstand'||(u.abts||[]).includes('LS');
+}
+function renderNightGroups(){
+  const cont=document.getElementById('night-group-list');if(!cont)return;
+  // Only show users who have a night shift enabled
+  const allEmps=getActiveEmps().sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  const nightEmps=allEmps.filter(u=>hasNachtschicht(u));
+  const leitstandEmps=nightEmps.filter(u=>isLeitstand(u));
+  const regularEmps=nightEmps.filter(u=>!isLeitstand(u));
+
+  cont.innerHTML=nightGroups.map((g,gi)=>{
+    const{y,kw}=curOff();
+    const active=activeNightGroup(y,kw);
+    const isActive=active&&active.id===g.id;
+    return`<div style="margin-bottom:16px;padding:14px;background:var(--bg3);border-radius:var(--r);border:1px solid ${isActive?'var(--orange-hdr)':'var(--border)'};">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <input type="text" value="${g.name}" class="fi" style="flex:1;font-weight:600;" onchange="nightGroups[${gi}].name=this.value;">
+        ${isActive?`<span class="badge bg-amber" style="flex-shrink:0;">Aktiv diese KW</span>`:''}
+        <button class="btn-sm btn-danger" onclick="removeNightGroup(${g.id})">✕</button>
+      </div>
+      ${regularEmps.length===0?'<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Keine Mitarbeiter mit Nachtschicht verfügbar</div>':''}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${regularEmps.map(u=>{
+          const checked=g.userIds.includes(u.id);
+          const otherGroup=nightGroups.find(ng=>ng.id!==g.id&&ng.userIds.includes(u.id));
+          return`<label title="${otherGroup?'Bereits in '+otherGroup.name:''}" style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:${otherGroup?'not-allowed':'pointer'};opacity:${otherGroup?'0.45':'1'};background:${checked?'rgba(224,120,32,0.1)':'var(--bg2)'};border:1px solid ${checked?'var(--orange-hdr)':'var(--border)'};border-radius:6px;padding:3px 8px;">
+            <input type="checkbox" ${checked?'checked':''} ${otherGroup?'disabled':''} style="accent-color:var(--orange-hdr);" onchange="toggleNightGroupMember(${g.id},${u.id},this.checked)">
+            ${u.name}
+          </label>`;
+        }).join('')}
+      </div>
+      ${leitstandEmps.length>0?`
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">⚡ Leitstand (1 Woche Rhythmus)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${leitstandEmps.map(u=>{
+            const checked=g.userIds.includes(u.id);
+            const otherGroup=nightGroups.find(ng=>ng.id!==g.id&&ng.userIds.includes(u.id));
+            return`<label title="${otherGroup?'Bereits in '+otherGroup.name:''}" style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:${otherGroup?'not-allowed':'pointer'};opacity:${otherGroup?'0.45':'1'};background:${checked?'rgba(139,92,246,0.15)':'var(--bg2)'};border:1px solid ${checked?'#8b5cf6':'var(--border)'};border-radius:6px;padding:3px 8px;">
+              <input type="checkbox" ${checked?'checked':''} ${otherGroup?'disabled':''} style="accent-color:#8b5cf6;" onchange="toggleNightGroupMember(${g.id},${u.id},this.checked)">
+              ${u.name} <span style="font-size:10px;color:#8b5cf6;font-weight:600;">LS</span>
+            </label>`;
+          }).join('')}
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+function toggleNightGroupMember(groupId,uid,add){
+  const g=nightGroups.find(x=>x.id===groupId);if(!g)return;
+  if(add){
+    // Check if already in another group
+    const conflict=nightGroups.find(ng=>ng.id!==groupId&&ng.userIds.includes(uid));
+    if(conflict){
+      const u=users.find(x=>x.id===uid);
+      alert((u?u.name:'Dieser Mitarbeiter')+' ist bereits in "'+conflict.name+'" eingeteilt!\nBitte erst dort entfernen.');
+      renderNightGroups();
+      return;
+    }
+    g.userIds.push(uid);
+  } else {
+    g.userIds=g.userIds.filter(id=>id!==uid);
+  }
+  renderNightGroups();
+}
+function addNightGroup(){
+  const newId=Math.max(0,...nightGroups.map(g=>g.id))+1;
+  nightGroups.push({id:newId,name:'Nachtgruppe '+newId,userIds:[]});
+  renderNightGroups();
+}
+function removeNightGroup(id){
+  if(!confirm('Gruppe löschen?'))return;
+  nightGroups=nightGroups.filter(g=>g.id!==id);
+  renderNightGroups();
+}
+
+
+// ══════════════════════════════════════
+// SCHICHT-HISTORY
+// ══════════════════════════════════════
+function renderHistory(){
+  const u=currentUser;
+  const isAdm=u.role==='admin';
+  const{y,kw}=curKW();
+  // Admin: show employee selector
+  const empWrap=document.getElementById('hist-emp-wrap');
+  const empSel=document.getElementById('hist-emp');
+  if(isAdm&&empWrap){
+    empWrap.classList.remove('hidden');
+    empWrap.style.display='flex';
+    empSel.innerHTML=getActiveEmps().sort((a,b)=>a.name.localeCompare(b.name,'de')).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    // Default to own entry if available
+    if(!empSel.value) empSel.value=u.id;
+  } else if(empWrap){
+    empWrap.classList.add('hidden');empWrap.style.display='none';
+  }
+  document.getElementById('history-sub').textContent=(isAdm?'Admin-Ansicht':'Meine Schichten')+' · Schicht-Übersicht';
+  // Populate year dropdown
+  const yearSel=document.getElementById('hist-year');
+  if(!yearSel.options.length||yearSel.dataset.built!=='1'){
+    yearSel.innerHTML=[y-1,y,y+1].map(yr=>`<option value="${yr}" ${yr===y?'selected':''}>${yr}</option>`).join('');
+    yearSel.dataset.built='1';
+  }
+  const fromSel=document.getElementById('hist-kw-from');
+  const toSel=document.getElementById('hist-kw-to');
+  const curFrom=fromSel.value?parseInt(fromSel.value):Math.max(1,kw-4);
+  const curTo=toSel.value?parseInt(toSel.value):Math.min(52,kw+4);
+  if(!fromSel.options.length){
+    const opts=Array.from({length:52},(_,i)=>`<option value="${i+1}">KW ${String(i+1).padStart(2,'0')}</option>`).join('');
+    fromSel.innerHTML=opts;toSel.innerHTML=opts;
+    fromSel.value=curFrom;toSel.value=curTo;
+  }
+  renderHistoryTable();
+}
+function resetHistoryFilter(){
+  const{y,kw}=curKW();
+  document.getElementById('hist-year').value=y;
+  document.getElementById('hist-kw-from').value=Math.max(1,kw-4);
+  document.getElementById('hist-kw-to').value=Math.min(52,kw+4);
+  renderHistoryTable();
+}
+function renderHistoryTable(){
+  const isAdm=currentUser.role==='admin';
+  const empSel=document.getElementById('hist-emp');
+  const targetId=isAdm&&empSel?.value?parseInt(empSel.value):currentUser.id;
+  const u=users.find(x=>x.id===targetId)||currentUser;
+  // Ensure admin emp dropdown only shows active standort
+  if(isAdm&&empSel){
+    const activeList=getActiveEmps().sort((a,b)=>a.name.localeCompare(b.name,'de'));
+    if(empSel.options.length!==activeList.length){
+      empSel.innerHTML=activeList.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+      if(!activeList.find(x=>x.id===targetId)&&activeList.length)empSel.value=activeList[0].id;
+    }
+  }
+  const{y:cy,kw:ckw}=curKW();
+  const selYear=parseInt(document.getElementById('hist-year')?.value||cy);
+  const fromKW=parseInt(document.getElementById('hist-kw-from')?.value||1);
+  const toKW=parseInt(document.getElementById('hist-kw-to')?.value||52);
+  const rows=[];
+  for(let w=fromKW;w<=toKW;w++){
+    const k=kwKey(selYear,w);
+    const abs=getAbsenceInKW(u.id,selYear,w);
+    const isKrankRow=abs?.type==='krank';
+    const isFullUrlaub=abs&&!(abs.type==='urlaub'&&abs.partial);
+    const sh=getShiftForKW(u.id,selYear,w);
+    const sc=sByID(sh);
+    const{comment}=getEntry(u.id,k);
+    const isCur=selYear===cy&&w===ckw;
+    const isPast=selYear<cy||(selYear===cy&&w<ckw);
+    let statusLabel='—';let statusColor='var(--text3)';
+    if(isKrankRow){statusLabel='Krank';statusColor='#dc2626';}
+    else if(isFullUrlaub&&abs?.type==='urlaub'){statusLabel='Urlaub';statusColor='#d97706';}
+    else if(abs?.partial){statusLabel=abs.partialLabel;statusColor='#d97706';}
+    else if(comment){statusLabel=comment;statusColor='var(--text2)';}
+    const isAdmHist=currentUser.role==='admin';
+    const freigabeOk=isAdmHist||getFreigabe(selYear,w)!==null;
+    const schichtTxt=isFullUrlaub&&!isKrankRow?'Urlaub':(sc?sc.name:'—');
+    const schichtDisplay=freigabeOk?schichtTxt:'🔒';
+    const zeitTxt=freigabeOk?(isFullUrlaub&&!isKrankRow?'—':(sc?sc.start:'—')):'';
+    const bg=isCur?'background:#fff7ed;':isPast?'background:rgba(0,0,0,.015);':'';
+    rows.push(`<div style="display:grid;grid-template-columns:130px 1fr 90px 110px 1fr;border-bottom:1px solid var(--border);${bg}">
+      <div style="padding:8px 13px;font-family:'DM Mono',monospace;font-size:12px;${isCur?'color:var(--orange-hdr);font-weight:700;':''}${isPast?'color:var(--text3);':''}">${kwLabel(selYear,w)}</div>
+      <div style="padding:8px 13px;font-size:12px;color:var(--text2);">${kwRange(selYear,w)}</div>
+      <div style="padding:8px 13px;font-size:12px;font-weight:${isCur?'700':'400'};${isKrankRow?'color:#dc2626;':''}">${schichtDisplay}</div>
+      <div style="padding:8px 13px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);">${zeitTxt}</div>
+      <div style="padding:8px 13px;font-size:11px;font-style:italic;color:${statusColor};">${statusLabel}</div>
+    </div>`);
+  }
+  document.getElementById('history-list').innerHTML=rows.join('');
+}
+
+
+// ══════════════════════════════════════
+// AUTOPLAN SETTINGS
+// ══════════════════════════════════════
+let apTabStandort='koeln';
+function setApTab(s){
+  apTabStandort=s;
+  ['koeln','dortmund'].forEach(x=>{
+    const btn=document.getElementById('ap-tab-'+x);
+    if(btn){btn.style.background=x===s?'var(--accent)':'var(--bg3)';btn.style.color=x===s?'#fff':'var(--text2)';}
+  });
+  renderAutoplanSliders();
+}
+function renderAutoplanSliders(){
+  const cont=document.getElementById('autoplan-sliders');
+  if(!cont)return;
+  const s=apTabStandort;
+  const{y,kw}=curOff();
+  const availableEmps=getActiveEmps().filter(u=>(u.standort===s||(u.standorte||[]).includes(s))&&!getAbsenceInKW(u.id,y,kw)).length;
+  const types=[
+    {key:'frueh',label:'Frühschicht',color:'#0b3d5e',bg:'#c6e2f5'},
+    {key:'spaet',label:'Spätschicht',color:'#1a4010',bg:'#cfe8c8'},
+    {key:'nacht',label:'Nachtschicht',color:'#f97316',bg:'#fff7ed'},
+  ];
+  cont.innerHTML=types.map(t=>{
+    const pct=apSet(s)[t.key];
+    const count=Math.round(availableEmps*pct/100);
+    return`<div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text);">${t.label}</label>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;font-weight:700;color:${t.color};">${pct}%</span>
+          <span style="font-size:12px;background:${t.bg};color:${t.color};padding:2px 8px;border-radius:5px;font-weight:600;">= ${count} MA</span>
+        </span>
+      </div>
+      <input type="range" min="0" max="80" step="5" value="${pct}"
+        style="width:100%;accent-color:${t.color};"
+        oninput="updateAutoplanPct('${t.key}',parseInt(this.value))">
+    </div>`;
+  }).join('');
+  updateAutoplanPreview(availableEmps,s);
+}
+function updateAutoplanPct(key,val){
+  apSet(apTabStandort)[key]=val;
+  renderAutoplanSliders();
+}
+function updateAutoplanPreview(availableEmps,s){
+  s=s||apTabStandort;
+  const prev=document.getElementById('autoplan-preview');if(!prev)return;
+  const f=Math.round(availableEmps*apSet(s).frueh/100);
+  const sp=Math.round(availableEmps*apSet(s).spaet/100);
+  const n=Math.round(availableEmps*apSet(s).nacht/100);
+  const frei=availableEmps-f-sp-n;
+  prev.innerHTML=`<strong>Vorschau ${s==='koeln'?'Köln':'Dortmund'} (${availableEmps} verfügbar):</strong> `+
+    `${f} Früh · ${sp} Spät · ${n} Nacht · ${frei<0?0:frei} Frei`;
+}
+
+
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div');t.id='toast';t.className='toast';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+
+// ══════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════
+const COLOR_THEMES=[
+  {name:'Orange',  val:'#e07820'},
+  {name:'Stahlblau',val:'#3b6fe0'},
+  {name:'Schiefergrün',val:'#2d7d6f'},
+  {name:'Weinrot',val:'#9b2335'},
+  {name:'Dunkelbraun',val:'#7a5230'},
+  {name:'Graphit',val:'#4b5563'},
+];
+function renderColorSwatches(){
+  const cur=getComputedStyle(document.documentElement).getPropertyValue('--orange-hdr').trim();
+  document.getElementById('color-swatches').innerHTML=COLOR_THEMES.map(c=>`
+    <div onclick="setAccentColor('${c.val}')" title="${c.name}" style="width:30px;height:30px;border-radius:6px;background:${c.val};cursor:pointer;border:3px solid ${c.val===cur.trim()||c.val===(localStorage.getItem('accentColor')||'#e07820')?'#fff':'transparent'};box-shadow:0 0 0 2px ${c.val};transition:all .15s;"></div>`).join('');
+}
+function setAccentColor(val){
+  document.documentElement.style.setProperty('--orange-hdr',val);
+  localStorage.setItem('accentColor',val);
+  renderColorSwatches();
+}
+function updateFirmname(val){
+  document.querySelectorAll('.sb-logo,.login-logo').forEach(el=>{
+    const before=el.querySelector('::before');
+    el.lastChild.textContent=' '+(val||'F&P Dienstplan');
+  });
+  document.querySelector('.sb-logo').innerHTML=`<span style="width:8px;height:8px;background:var(--orange-hdr);border-radius:2px;display:inline-block;"></span> ${val||'F&P Dienstplan'}`;
+}
+function saveSettings(){try{localStorage.setItem('autoplanSettings',JSON.stringify(autoplanSettings));}catch(e){}playSound('save');showToast('Einstellungen gespeichert.');}
+
+// ══════════════════════════════════════
+// BENACHRICHTIGUNGEN — Schichtplan-Versand
+// ══════════════════════════════════════
+function populateNotifKWs(){
+  const{y,kw}=curKW();
+  ['notif-kw','resend-kw'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='';
+    for(let d=-2;d<=6;d++){
+      const{y:yr,kw:w}=addDelta(y,kw,d);
+      el.innerHTML+=`<option value="${kwKey(yr,w)}">${kwLabel(yr,w)} (${kwRange(yr,w)})</option>`;
+    }
+  });
+  const re=document.getElementById('resend-emp');
+  if(re)re.innerHTML=users.filter(u=>u.role==='employee').map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+}
+function buildSchichtplanText(uid,kwk){
+  const u=users.find(x=>x.id===uid);if(!u)return'';
+  const abs=getAbsenceInKW(uid,...(()=>{const p=kwk.split('-W');return[parseInt(p[0]),parseInt(p[1])];})());
+  const sh=getShiftForKW(uid,...(()=>{const p=kwk.split('-W');return[parseInt(p[0]),parseInt(p[1])];})());
+  const s=sByID(sh);
+  const statusTxt=abs?(abs.type==='krank'?'Krank':'Urlaub'):(s?s.name+' '+s.start+' – '+s.end:'Frei');
+  return `Hallo ${u.name.split(',')[1]?.trim()||u.name},
+
+dein Schichtplan für ${kwk}:
+${statusTxt}
+
+Viele Grüße,
+Disposition`;
+}
+function sendSchichtplanNotif(){
+  const kwk=document.getElementById('notif-kw').value;
+  const checked=[...document.querySelectorAll('.ne-cb:checked')];
+  const allC=document.querySelector('#notif-emps input[value="all"]')?.checked;
+  if(!allC&&!checked.length){alert('Bitte Empfänger wählen.');return;}
+  const targets=allC?users.filter(u=>u.role==='employee'):checked.map(c=>users.find(u=>u.id===parseInt(c.value))).filter(Boolean);
+  const emails=targets.map(u=>u.email).filter(Boolean);
+  const smsTargets=targets.filter(u=>u.sms&&u.phone);
+  const subj=`Schichtplan ${kwk}`;
+  const body=targets.length===1?buildSchichtplanText(targets[0].id,kwk):`Schichtplan ${kwk} wurde erstellt und ist unter "Mein Plan" einsehbar.`;
+  window.location.href=`mailto:${emails.join(',')}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  const smsNote=smsTargets.length>0?` + SMS an ${smsTargets.length} MA`:'';
+  notifLog.push({to:targets.map(u=>u.name).join(', '),subject:subj+smsNote,time:'gerade eben',bg:'#f0fdf4',ic:'#16a34a',kwk,targets:targets.map(u=>u.id)});
+  renderNotifHistory();
+  playSound('save');
+}
+function resendToEmployee(){
+  const uid=parseInt(document.getElementById('resend-emp').value);
+  const kwk=document.getElementById('resend-kw').value;
+  const u=users.find(x=>x.id===uid);if(!u)return;
+  const body=buildSchichtplanText(uid,kwk);
+  window.location.href=`mailto:${u.email}?subject=${encodeURIComponent('Schichtplan '+kwk)}&body=${encodeURIComponent(body)}`;
+  notifLog.push({to:u.name,subject:`Schichtplan ${kwk} (erneut)`,time:'gerade eben',bg:'#eff6ff',ic:'#2563eb'});
+  renderNotifHistory();
+  playSound('save');
+}
+
+// ══════════════════════════════════════
+// KRANKMELDUNG EXTRAS
+// ══════════════════════════════════════
+function schnellKrank(){
+  const uidStr=document.getElementById('km-emp').value;
+  if(!uidStr){alert('Mitarbeiter wählen.');return;}
+  const uid=parseInt(uidStr);
+  const today=new Date().toISOString().slice(0,10);
+  // Set toDate = Sunday of current KW so it only covers this week
+  const{y,kw}=curKW();
+  const sunISO=dateISO(sundayOf(y,kw));
+  const ex=krankmeldungen.find(k=>k.uid===uid&&k.fromDate===today);
+  if(ex){ex.toDate=sunISO;ex.offen=true;}
+  else krankmeldungen.push({id:nextKrankId++,uid,fromDate:today,toDate:sunISO,offen:true});
+  document.getElementById('km-emp').selectedIndex=0;
+  renderKranklist();renderShiftTable();renderDashboard();
+  playSound('save');
+  // Use setTimeout to ensure DOM is ready
+  setTimeout(()=>showToast('✓ Heute krank eingetragen — Enddatum bitte später nachtragen'),50);
+  showToast('✓ Heute krank eingetragen — Enddatum bitte später nachtragen');
+}
+
+
+// ═══════════════════════════════════════════════════════
+// FAHRER BEREICH
+// ═══════════════════════════════════════════════════════
+
+let currentBereich = 'lager'; // 'lager' | 'fahrer'
+let fahrerOffset = 0; // week offset for fahrer plan
+let fahrer = []; // list of driver employees
+let fahrerKrank = []; // sick records for drivers
+let fahrerUrlaub = []; // vacation records for drivers
+let fahrerPlan = {}; // {key: {uid, date, typ, sonstiges}}
+let editFahrerId = null;
+let editFahrerKrankId = null;
+let editFahrerUrlaubId = null;
+let fahrerSonstigesContext = null; // {uid, date}
+
+function switchBereich(val) {
+  currentBereich = val;
+  const isLager = val === 'lager';
+  // Show/hide nav sections
+  document.querySelectorAll('.fahrer-nav').forEach(el => el.classList.toggle('hidden', isLager));
+  document.querySelectorAll('.lager-only-nav').forEach(el => el.classList.toggle('hidden', !isLager));
+  // Show/hide standard nav items (schichtplan, mitarbeiter etc.)
+  const lagerPages = ['schichtplan','meinplan','history','krankmeldung','urlaub','mitarbeiter','schichten','abteilungen','benachrichtigung','einstellungen'];
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    const pg = el.getAttribute('data-page');
+    if (lagerPages.includes(pg)) el.classList.toggle('hidden', !isLager);
+  });
+  // Navigate to appropriate dashboard
+  if (!isLager) {
+    const fahrerStartPage = currentUser.role === 'admin' ? 'fahrer-plan' : 'fahrer-meinplan';
+    navTo(fahrerStartPage, document.querySelector('.nav-item[data-page="'+fahrerStartPage+'"]'));
+  } else {
+    if(currentUser.role==='fahrer'){
+    document.getElementById('bereich-select').value='fahrer';
+    switchBereich('fahrer');
+  } else {
+    navTo('dashboard', document.querySelector('.nav-item[data-page="dashboard"]'));
+  }
+  }
+}
+
+function getFahrerForStandort() {
+  return fahrer.filter(f => f.standort === currentStandort || (currentUser.role !== 'admin'));
+}
+
+function getFahrerKWKey(y, kw) { return y + '-W' + String(kw).padStart(2,'0'); }
+
+function changeFahrerKW(dir) {
+  if (dir === 0) { fahrerOffset = 0; }
+  else { fahrerOffset += dir; }
+  renderFahrerPlan();
+}
+
+function getFahrerAbsence(uid, dateStr) {
+  const d = new Date(dateStr);
+  const krank = fahrerKrank.find(k => k.uid === uid && new Date(k.fromDate) <= d && (!k.toDate || new Date(k.toDate) >= d));
+  if (krank) return 'krank';
+  const url = fahrerUrlaub.find(u => u.uid === uid && new Date(u.fromDate) <= d && new Date(u.toDate) >= d);
+  if (url) return 'urlaub';
+  return null;
+}
+
+function renderFahrerPlan() {
+  const cont = document.getElementById('fahrer-plan-table');
+  if (!cont) return;
+  const today = new Date();
+  const base = new Date(today);
+  base.setDate(today.getDate() + fahrerOffset * 7);
+  // Get Monday of the week
+  const day = base.getDay();
+  const monday = new Date(base);
+  monday.setDate(base.getDate() - (day === 0 ? 6 : day - 1));
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
+  }
+
+  const {y, kw} = getKWFromDate(monday);
+  document.getElementById('fahrer-kw-lbl').textContent = 'KW ' + kw + ' / ' + y;
+
+  const tourenfahrer = getFahrerForStandort().filter(f => f.typ === 'tourenfahrer');
+  const austauschfahrer = getFahrerForStandort().filter(f => f.typ === 'austauschfahrer');
+
+  const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const monthNames = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  function buildSection(title, color, fahrerliste, startzeit) {
+    if (!fahrerliste.length) return '';
+    const rows = fahrerliste.map(f => {
+      const cells = days.map(d => {
+        const dateStr = d.toISOString().split('T')[0];
+        const key = f.id + '_' + dateStr;
+        const planEntry = fahrerPlan[key] || {};
+        const absence = getFahrerAbsence(f.id, dateStr);
+        const sonstiges = planEntry.sonstiges || '';
+        const isToday = d.toDateString() === today.toDateString();
+
+        if (absence) {
+          const absLabel = absence === 'krank' ? 'K' : 'U';
+          const absColor = absence === 'krank' ? '#f87171' : '#fbbf24';
+          return `<td style="text-align:center;background:${absence==='krank'?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.1)'};border:1px solid var(--border);padding:4px;min-width:90px;">
+            <span style="font-weight:700;color:${absColor};font-size:13px;">${absLabel}</span>
+          </td>`;
+        }
+
+        const editBtn = currentUser.role === 'admin' ? `<div style="margin-top:3px;"><button class="btn-sm" style="font-size:10px;padding:2px 6px;" onclick="openFahrerSonstiges('${f.id}','${dateStr}')">✎ Sonstiges</button></div>` : '';
+        return `<td style="text-align:center;border:1px solid var(--border);padding:4px;min-width:90px;background:${isToday?'rgba(249,115,22,0.06)':'var(--bg)'};vertical-align:top;">
+          <div style="font-size:11px;font-weight:600;color:${color};">${startzeit}</div>
+          ${sonstiges ? `<div style="font-size:10px;color:var(--text2);margin-top:2px;max-width:80px;word-break:break-word;">${sonstiges}</div>` : ''}
+          ${editBtn}
+        </td>`;
+      }).join('');
+      return `<tr>
+        <td style="padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--border);background:var(--bg3);">${f.name}</td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    return `<div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;">${title}</div>
+      <div style="overflow-x:auto;">
+        <table style="border-collapse:collapse;width:100%;font-size:12px;">
+          <thead><tr>
+            <th style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);text-align:left;min-width:140px;">Fahrer</th>
+            ${days.map((d,i) => {
+              const isToday = d.toDateString() === today.toDateString();
+              return `<th style="padding:6px;background:${isToday?'rgba(249,115,22,0.12)':'var(--bg3)'};border:1px solid var(--border);text-align:center;min-width:90px;">
+                <div style="font-weight:700;color:${isToday?'var(--accent)':'var(--text)'};">${dayNames[i]}</div>
+                <div style="font-size:10px;color:var(--text3);">${d.getDate()}. ${monthNames[d.getMonth()]}</div>
+              </th>`;
+            }).join('')}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  cont.innerHTML = buildSection('🚛 Tourenfahrer', '#3b82f6', tourenfahrer, '05:00') +
+                   buildSection('🔄 Austauschfahrer', '#f97316', austauschfahrer, '15:00');
+}
+
+function getKWFromDate(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const kw = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return { y: date.getUTCFullYear(), kw };
+}
+
+// ─── Fahrer Sonstiges ───────────────────────────────────
+function openFahrerSonstiges(uid, dateStr) {
+  const key = uid + '_' + dateStr;
+  fahrerSonstigesContext = { uid, dateStr };
+  const entry = fahrerPlan[key] || {};
+  const f = fahrer.find(x => x.id == uid);
+  const d = new Date(dateStr);
+  const dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  document.getElementById('mfs-title').textContent = 'Sonstiges – ' + (f ? f.name : '') + ' (' + dayNames[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth()+1) + '.)';
+  document.getElementById('fs-text').value = entry.sonstiges || '';
+  document.getElementById('modal-fahrer-sonstiges').classList.remove('hidden');
+}
+async function saveFahrerSonstiges() {
+  if (!fahrerSonstigesContext) return;
+  const { uid, dateStr } = fahrerSonstigesContext;
+  const key = uid + '_' + dateStr;
+  const text = document.getElementById('fs-text').value.trim();
+  if (!fahrerPlan[key]) fahrerPlan[key] = {};
+  fahrerPlan[key].sonstiges = text;
+  closeM('modal-fahrer-sonstiges');
+  renderFahrerPlan();
+  // Save to Supabase
+  const row = { fahrer_id: parseInt(uid), date: dateStr, sonstiges: text, standort: currentStandort };
+  await dbUpsert('fahrer_sonstiges', row, 'fahrer_id,date');
+}
+
+// ─── Fahrer Mitarbeiterliste ────────────────────────────
+function renderFahrerList() {
+  const el = document.getElementById('fahrer-list');
+  if (!el) return;
+  const list = getFahrerForStandort().sort((a,b) => a.name.localeCompare(b.name,'de'));
+  if (!list.length) { el.innerHTML = '<div style="padding:18px;color:var(--text3);text-align:center;">Noch keine Fahrer angelegt</div>'; return; }
+  el.innerHTML = list.map(f => `
+    <div class="sr" style="grid-template-columns:1fr 120px 120px 100px 120px;">
+      <div style="font-weight:600;">${f.name}</div>
+      <div>${f.typ === 'tourenfahrer' ? '🚛 Touren' : '🔄 Austausch'}</div>
+      <div>${f.standort === 'koeln' ? 'Köln' : 'Dortmund'}</div>
+      <div><span class="badge bg-green">Aktiv</span></div>
+      <div style="display:flex;gap:5px;">
+        <button class="btn-sm" onclick="openEditFahrer('${f.id}')">✎</button>
+        <button class="btn-sm btn-danger" onclick="deleteFahrer('${f.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function openAddFahrer() {
+  editFahrerId = null;
+  document.getElementById('mf-title').textContent = 'Fahrer hinzufügen';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-username').value = '';
+  document.getElementById('f-pw').value = '';
+  document.getElementById('f-email').value = '';
+  document.getElementById('f-typ').value = 'tourenfahrer';
+  document.getElementById('f-standort').value = currentStandort;
+  document.getElementById('modal-fahrer').classList.remove('hidden');
+}
+function openEditFahrer(id) {
+  editFahrerId = id;
+  const f = fahrer.find(x => x.id == id);
+  if (!f) return;
+  document.getElementById('mf-title').textContent = 'Fahrer bearbeiten';
+  document.getElementById('f-name').value = f.name;
+  document.getElementById('f-username').value = f.username;
+  document.getElementById('f-pw').value = '';
+  document.getElementById('f-email').value = f.email || '';
+  document.getElementById('f-typ').value = f.typ;
+  document.getElementById('f-standort').value = f.standort;
+  document.getElementById('modal-fahrer').classList.remove('hidden');
+}
+async function saveFahrer() {
+  const name = document.getElementById('f-name').value.trim();
+  const username = document.getElementById('f-username').value.trim();
+  const pw = document.getElementById('f-pw').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const typ = document.getElementById('f-typ').value;
+  const standort = document.getElementById('f-standort').value;
+  if (!name || !username) { alert('Bitte Name und Benutzername eingeben.'); return; }
+  if (!editFahrerId && !pw) { alert('Bitte ein Passwort vergeben.'); return; }
+  const row = { name, username, email, typ, standort, role: 'fahrer' };
+  if (pw) row.password_hash = pw;
+  if (!editFahrerId) {
+    if (fahrer.find(f => f.username === username)) { alert('Benutzername bereits vergeben!'); return; }
+    const res = await dbInsert('fahrer', row);
+    if (res && res[0]) fahrer.push({ id: res[0].id, name, username, password: pw, email, typ, standort, role: 'fahrer' });
+  } else {
+    await dbUpdate('fahrer', 'id=eq.' + editFahrerId, row);
+    const f = fahrer.find(x => x.id == editFahrerId);
+    if (f) { f.name = name; f.username = username; f.email = email; f.typ = typ; f.standort = standort; if (pw) f.password = pw; }
+  }
+  closeM('modal-fahrer');
+  renderFahrerList();
+  showToast('Fahrer gespeichert.');
+}
+async function deleteFahrer(id) {
+  if (!confirm('Fahrer löschen?')) return;
+  await dbDelete('fahrer', 'id=eq.' + id);
+  fahrer = fahrer.filter(f => f.id != id);
+  renderFahrerList();
+}
+
+// ─── Fahrer Krankmeldung ────────────────────────────────
+function populateFahrerSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = getFahrerForStandort().sort((a,b) => a.name.localeCompare(b.name,'de'))
+    .map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+}
+function openAddFahrerKrank() {
+  editFahrerKrankId = null;
+  populateFahrerSelect('fk-emp');
+  document.getElementById('fk-from').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fk-to').value = '';
+  document.getElementById('modal-fahrer-krank').classList.remove('hidden');
+}
+async function saveFahrerKrank() {
+  const uid = document.getElementById('fk-emp').value;
+  const from = document.getElementById('fk-from').value;
+  const to = document.getElementById('fk-to').value;
+  if (!uid || !from) { alert('Bitte Fahrer und Datum auswählen.'); return; }
+  if (!editFahrerKrankId) {
+    const row = { fahrer_id: parseInt(uid), from_date: from, to_date: to || null, standort: currentStandort };
+    const res = await dbInsert('fahrer_krankmeldungen', row);
+    if (res && res[0]) fahrerKrank.push({ id: res[0].id, uid: String(uid), fromDate: from, toDate: to||null, standort: currentStandort });
+  }
+  closeM('modal-fahrer-krank');
+  renderFahrerKrankList();
+  showToast('Krankmeldung gespeichert.');
+}
+function renderFahrerKrankList() {
+  const el = document.getElementById('fahrer-krank-list');
+  if (!el) return;
+  if (!fahrerKrank.length) { el.innerHTML = '<div style="padding:18px;color:var(--text3);text-align:center;">Keine Krankmeldungen</div>'; return; }
+  el.innerHTML = fahrerKrank.map(k => {
+    const f = fahrer.find(x => x.id == k.uid);
+    return `<div class="sr" style="grid-template-columns:1fr 120px 120px 100px;">
+      <div style="font-weight:600;">${f ? f.name : k.uid}</div>
+      <div style="font-size:12px;">${k.fromDate}</div>
+      <div style="font-size:12px;">${k.toDate || '<span style="color:var(--accent)">offen</span>'}</div>
+      <div><button class="btn-sm btn-danger" onclick="deleteFahrerKrank('${k.id}')">✕</button></div>
+    </div>`;
+  }).join('');
+}
+async function deleteFahrerKrank(id) {
+  if (!confirm('Krankmeldung löschen?')) return;
+  await dbDelete('fahrer_krankmeldungen', 'id=eq.' + id);
+  fahrerKrank = fahrerKrank.filter(k => k.id !== id);
+  renderFahrerKrankList();
+}
+
+// ─── Fahrer Urlaub ──────────────────────────────────────
+function openAddFahrerUrlaub() {
+  editFahrerUrlaubId = null;
+  populateFahrerSelect('fu-emp');
+  document.getElementById('fu-from').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fu-to').value = '';
+  document.getElementById('modal-fahrer-urlaub').classList.remove('hidden');
+}
+async function saveFahrerUrlaub() {
+  const uid = document.getElementById('fu-emp').value;
+  const from = document.getElementById('fu-from').value;
+  const to = document.getElementById('fu-to').value;
+  if (!uid || !from || !to) { alert('Bitte alle Felder ausfüllen.'); return; }
+  const row = { fahrer_id: parseInt(uid), from_date: from, to_date: to, standort: currentStandort };
+  const res = await dbInsert('fahrer_urlaube', row);
+  if (res && res[0]) fahrerUrlaub.push({ id: res[0].id, uid: String(uid), fromDate: from, toDate: to, standort: currentStandort });
+  closeM('modal-fahrer-urlaub');
+  renderFahrerUrlaubList();
+  showToast('Urlaub gespeichert.');
+}
+function renderFahrerUrlaubList() {
+  const el = document.getElementById('fahrer-urlaub-list');
+  if (!el) return;
+  if (!fahrerUrlaub.length) { el.innerHTML = '<div style="padding:18px;color:var(--text3);text-align:center;">Keine Urlaubseinträge</div>'; return; }
+  el.innerHTML = fahrerUrlaub.map(u => {
+    const f = fahrer.find(x => x.id == u.uid);
+    return `<div class="sr" style="grid-template-columns:1fr 120px 120px 100px;">
+      <div style="font-weight:600;">${f ? f.name : u.uid}</div>
+      <div style="font-size:12px;">${u.fromDate}</div>
+      <div style="font-size:12px;">${u.toDate}</div>
+      <div><button class="btn-sm btn-danger" onclick="deleteFahrerUrlaub('${u.id}')">✕</button></div>
+    </div>`;
+  }).join('');
+}
+async function deleteFahrerUrlaub(id) {
+  if (!confirm('Urlaubseintrag löschen?')) return;
+  await dbDelete('fahrer_urlaube', 'id=eq.' + id);
+  fahrerUrlaub = fahrerUrlaub.filter(u => u.id !== id);
+  renderFahrerUrlaubList();
+}
+
+// ─── Fahrer Mein Plan (für eingeloggte Fahrer) ──────────
+function renderFahrerMeinPlan() {
+  const cont = document.getElementById('fahrer-meinplan-content');
+  if (!cont) return;
+  const f = fahrer.find(x => x.username === currentUser.username);
+  if (!f) { cont.innerHTML = '<div class="card" style="padding:20px;color:var(--text3);">Kein Fahrerprofil gefunden.</div>'; return; }
+
+  const today = new Date();
+  const weeks = [];
+  for (let w = 0; w < 4; w++) {
+    const base = new Date(today);
+    base.setDate(today.getDate() + w * 7);
+    const day = base.getDay();
+    const monday = new Date(base);
+    monday.setDate(base.getDate() - (day === 0 ? 6 : day - 1));
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    weeks.push(days);
+  }
+
+  const startzeit = f.typ === 'tourenfahrer' ? '05:00' : '15:00';
+  const typLabel = f.typ === 'tourenfahrer' ? '🚛 Tourenfahrer' : '🔄 Austauschfahrer';
+  const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+  cont.innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:700;">${f.name}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px;">${typLabel} · Beginn: ${startzeit}</div>
+    </div>
+    ${weeks.map(days => {
+      const {y, kw} = getKWFromDate(days[0]);
+      const rows = days.map((d, i) => {
+        const dateStr = d.toISOString().split('T')[0];
+        const key = f.id + '_' + dateStr;
+        const absence = getFahrerAbsence(f.id, dateStr);
+        const sonstiges = (fahrerPlan[key] || {}).sonstiges || '';
+        const isToday = d.toDateString() === today.toDateString();
+        const isWE = i >= 5;
+        return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);${isToday?'background:rgba(249,115,22,0.05);border-radius:6px;padding:8px;':''}">
+          <div style="min-width:80px;font-size:12px;font-weight:${isToday?'700':'500'};color:${isToday?'var(--accent)':isWE?'var(--text3)':'var(--text)'};">${dayNames[i]} ${d.getDate()}.${d.getMonth()+1}.</div>
+          <div style="flex:1;">
+            ${absence ? `<span style="font-weight:700;color:${absence==='krank'?'#f87171':'#fbbf24'};">${absence==='krank'?'Krank':'Urlaub'}</span>` :
+              isWE ? '<span style="color:var(--text3);">Frei</span>' :
+              `<span style="font-weight:600;color:var(--accent);">${startzeit}</span>${sonstiges ? ' · <span style="color:var(--text2);font-size:12px;">'+sonstiges+'</span>' : ''}`}
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text2);">KW ${kw} · ${y}</div>
+        ${rows}
+      </div>`;
+    }).join('')}`;
+}
+
+// ─── Load/Init Fahrer ───────────────────────────────────
+async function initFahrerBereich() {
+  try {
+    // Load Fahrer from Supabase
+    const dbF = await dbGet('fahrer', 'order=name');
+    if (dbF) fahrer = dbF.map(f => ({
+      id: f.id, name: f.name, username: f.username,
+      password: f.password_hash, email: f.email||'',
+      typ: f.typ, standort: f.standort, role: 'fahrer'
+    }));
+
+    // Load Fahrer Krankmeldungen
+    const dbFK = await dbGet('fahrer_krankmeldungen', 'order=from_date');
+    if (dbFK) fahrerKrank = dbFK.map(k => ({
+      id: k.id, uid: String(k.fahrer_id),
+      fromDate: k.from_date, toDate: k.to_date||null, standort: k.standort
+    }));
+
+    // Load Fahrer Urlaube
+    const dbFU = await dbGet('fahrer_urlaube', 'order=from_date');
+    if (dbFU) fahrerUrlaub = dbFU.map(u => ({
+      id: u.id, uid: String(u.fahrer_id),
+      fromDate: u.from_date, toDate: u.to_date, standort: u.standort
+    }));
+
+    // Load Fahrer Sonstiges
+    const dbFS = await dbGet('fahrer_sonstiges');
+    if (dbFS) {
+      fahrerPlan = {};
+      dbFS.forEach(s => {
+        const key = s.fahrer_id + '_' + s.date;
+        fahrerPlan[key] = { id: s.id, sonstiges: s.sonstiges };
+      });
+    }
+  } catch(e) { console.warn('Fahrer DB load error:', e); }
+}
+
+</script>
+<div id="toast" class="toast"></div>
+</body>
+</html>
