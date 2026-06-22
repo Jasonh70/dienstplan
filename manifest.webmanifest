@@ -1,0 +1,15 @@
+{
+  "name": "F&P Dienstplan",
+  "short_name": "Dienstplan",
+  "description": "Schichtplanung F&P — Köln, Dortmund, Trier",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#007757",
+  "theme_color": "#007757",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
